@@ -1,0 +1,42 @@
+@use 'variables' as *;
+
+// 📐 Layout Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 🖼️ Component Mixins
+@mixin button-base {
+  padding: $spacing-sm $spacing-md;
+  background: $btn-bg;
+  color: white;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background $transition-normal, opacity $transition-normal;
+
+  &:hover:not(:disabled) {
+    background: $btn-hover;
+  }
+
+  &:disabled {
+    background: $btn-disabled;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+@mixin text-status($color) {
+  font-size: 0.85rem;
+  color: $color;
+  margin-left: $spacing-md;
+}

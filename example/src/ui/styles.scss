@@ -1,0 +1,78 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: $bg-primary;
+  color: $text-primary;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+
+// 🖼️ App Layout
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  header {
+    padding: $spacing-md;
+    background: $bg-secondary;
+    border-bottom: 1px solid $bg-accent;
+    @include flex-between;
+    flex-shrink: 0;
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+  }
+
+  .controls {
+    display: flex;
+    gap: $spacing-sm;
+    @include flex-center;
+  }
+
+  button {
+    @include button-base;
+  }
+
+  .status {
+    @include text-status($text-muted);
+
+    &.success { color: $success; }
+    &.error { color: $error; }
+  }
+
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    @include flex-center;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  #skia-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+}
