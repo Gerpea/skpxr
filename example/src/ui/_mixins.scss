@@ -1,6 +1,5 @@
 @use 'variables' as *;
 
-// 📐 Layout Mixins
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -13,7 +12,6 @@
   justify-content: space-between;
 }
 
-// 🖼️ Component Mixins
 @mixin button-base {
   padding: $spacing-sm $spacing-md;
   background: $btn-bg;

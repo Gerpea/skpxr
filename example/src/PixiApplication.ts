@@ -9,27 +9,23 @@ export class PixiApplication {
       width,
       height,
       backgroundColor: 0x1099bb,
-      forceCanvas: true,          
+      forceCanvas: true,
       resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
+      // ❌ DO NOT include autoDensity: true
       antialias: true
     });
 
     this.canvas = this.app.view as HTMLCanvasElement;
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100%';
+    // ✅ Explicit CSS sizes prevent browser stretching
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
     this.canvas.style.display = 'block';
-    
+
     container.appendChild(this.canvas);
   }
 
-  get stage(): PIXI.Container {
-    return this.app.stage;
-  }
-
-  get ticker(): PIXI.Ticker {
-    return this.app.ticker;
-  }
+  get stage(): PIXI.Container { return this.app.stage; }
+  get ticker(): PIXI.Ticker { return this.app.ticker; }
 
   public resize(width: number, height: number): void {
     this.app.renderer.resize(width, height);

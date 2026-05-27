@@ -1,5 +1,5 @@
 {
-  "name": "example",
+  "name": "pixi-skia-wrapper-example",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "pixi.js-legacy": "^7.2.4"
+    "pixi.js-legacy": "^7.2.4",
+    "pixi-skia-wrapper": "file:.."
   },
   "devDependencies": {
     "vite": "^5.4.2",
