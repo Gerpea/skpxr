@@ -1,4 +1,3 @@
-// src/skia-wrapper/mappers/GraphicsMapper.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit } from 'canvaskit-wasm';
 import type { SkiaMapper } from './SkiaMapper';
@@ -83,7 +82,6 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
     } 
     else if (shape instanceof PIXI.Ellipse) {
       // ✅ Pixi Ellipse: x,y = center, width/height = RADIUS (semi-axes)
-      // Convert to XYWH bounding box for Skia
       const rect = ck.XYWHRect(
         shape.x - shape.width,
         shape.y - shape.height,
@@ -93,7 +91,6 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
       builder.addOval(rect);
     } 
     else if (shape instanceof PIXI.Rectangle) {
-      // ✅ Pixi Rectangle: x,y = top-left, width/height = full dimensions
       const rect = ck.XYWHRect(shape.x, shape.y, shape.width, shape.height);
       builder.addRect(rect);
     }

@@ -2,7 +2,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Canvas, Paint } from 'canvaskit-wasm';
 import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
 import { TransformManager } from './TransformManager';
-import { CK } from './utils/ck-helpers';
+import { CK } from './utils/ck_helpers';
 
 export interface SceneRenderContext {
   ck: CanvasKit;

@@ -1,7 +1,8 @@
 import CanvasKitInit from 'canvaskit-wasm';
 import type { CanvasKit, Canvas, Surface, Paint, Path, Image } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
-import type { SkiaRendererOptions, RenderContext } from './types';
+import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
+import { TransformManager } from './TransformManager';
 import {
   MapperRegistry,
   ContainerMapper,
@@ -9,8 +10,6 @@ import {
   SpriteMapper,
   type SkiaMapper,
 } from './mappers';
-import { CK } from './utils/ck-helpers';
-import { SceneRenderer } from './SceneRenderer';
 
 export class SkiaRenderer {
   private ck: CanvasKit | null = null;
@@ -25,8 +24,6 @@ export class SkiaRenderer {
     'pointerdown' | 'pointerup',
     Set<(x: number, y: number) => void>
   >();
-
-  private scene!: SceneRenderer;
 
   constructor(private options: SkiaRendererOptions) {
     this.setupRegistry();
@@ -45,9 +42,6 @@ export class SkiaRenderer {
   async init(): Promise<void> {
     const { width, height, dpr = 1, wasmBaseUrl, locateFile } = this.options;
 
-    console.log('🔍 SkiaRenderer.init() called', { width, height, dpr, wasmBaseUrl });
-
-    // Build effective locateFile function
     const effectiveLocateFile =
       locateFile ||
       ((file: string) => {
@@ -55,15 +49,10 @@ export class SkiaRenderer {
           const base = wasmBaseUrl.endsWith('/') ? wasmBaseUrl : `${wasmBaseUrl}/`;
           return `${base}${file}`;
         }
-
-        // Sensible fallback: expect WASM in /canvaskit/ relative to page root
-        // Production deployments should always provide wasmBaseUrl
         return `/canvaskit/${file}`;
       });
 
     this.ck = await CanvasKitInit({ locateFile: effectiveLocateFile });
-    this.scene = new SceneRenderer(this.ck);
-    console.log('✅ CanvasKit initialized');
 
     const canvasEl = this.options.canvas;
     canvasEl.width = width * dpr;
@@ -75,48 +64,35 @@ export class SkiaRenderer {
     if (!this.surface) throw new Error('MakeSWCanvasSurface returned null');
 
     this.canvas = this.surface.getCanvas();
-    this.paint = CK.makePaint(this.ck!);
-    this.path = CK.makePath(this.ck!);
+    this.paint = new this.ck!.Paint();
+    this.paint.setAntiAlias(true);
+    this.path = new this.ck!.Path();
 
     canvasEl.addEventListener('pointerdown', e => this.handlePointerEvent(e, 'pointerdown'));
     canvasEl.addEventListener('pointerup', e => this.handlePointerEvent(e, 'pointerup'));
-
-    console.log('✅ SkiaRenderer fully initialized');
   }
 
   renderContainer(container: PIXI.Container): void {
-    if (!this.canvas || !this.paint) return;
+    if (!this.canvas || !this.ck || !this.paint || !this.path) return;
 
-    // ✅ Delegate to shared renderer
-    this.scene.render(container, this.canvas, this.paint);
+    const ctx: RenderContext = {
+      ck: this.ck,
+      canvas: this.canvas,
+      paint: this.paint,
+      imageCache: this.imageCache,
+    };
+
+    this.canvas.clear(this.ck!.Color4f(0.15, 0.15, 0.15, 1));
+    this.drawObject(ctx, container, TransformManager.identity());
     this.surface?.flush();
   }
 
   drawObject(ctx: RenderContext, obj: PIXI.DisplayObject, worldMatrix: Float32Array): void {
-    console.log('🔍 drawObject:', obj.constructor.name, {
-      visible: obj.visible,
-      alpha: obj.alpha,
-      x: obj.x,
-      y: obj.y,
-    });
-
-    if (!obj.visible || obj.alpha === 0) {
-      console.log('⏭️  Skipping invisible object');
-      return;
-    }
+    if (!obj.visible || obj.alpha === 0) return;
 
     const mapper = this.registry.getMapper(obj);
-    console.log('🧩 Mapper found:', mapper?.constructor.name || 'NONE');
-
     if (mapper) {
-      try {
-        (mapper as SkiaMapper).draw(ctx, obj as any, worldMatrix);
-        console.log('✅ Mapper draw completed');
-      } catch (err) {
-        console.error('❌ Mapper draw failed:', err);
-      }
-    } else {
-      console.warn('⚠️  No mapper for object type:', obj.constructor.name);
+      (mapper as SkiaMapper).draw(ctx, obj as any, worldMatrix);
     }
   }
 
@@ -139,9 +115,7 @@ export class SkiaRenderer {
 
     const handlers = this.eventHandlers.get(type);
     if (handlers) {
-      for (const handler of handlers) {
-        handler(x, y);
-      }
+      for (const handler of handlers) handler(x, y);
     }
   }
 
@@ -156,6 +130,82 @@ export class SkiaRenderer {
   setVisible(visible: boolean): void {
     this.options.canvas.style.display = visible ? 'block' : 'none';
     this.options.canvas.style.pointerEvents = visible ? 'auto' : 'none';
+  }
+
+  // 🆕 PDF EXPORT METHODS (Reuse existing mappers)
+
+  /**
+   * Exports a Pixi container to a PDF Uint8Array.
+   * Reuses the same MapperRegistry and RenderContext, ensuring pixel-perfect parity
+   * between screen and PDF without duplicated drawing logic.
+   */
+  async exportToPdf(
+    container: PIXI.Container,
+    options: PdfExportOptions = {}
+  ): Promise<Uint8Array> {
+    if (!this.ck?.pdf) {
+      throw new Error(
+        'PDF export is not available. CanvasKit must be built with skia_enable_pdf=true.'
+      );
+    }
+
+    const pageSize = options.pageSize || { width: this.options.width, height: this.options.height };
+    const doc = this.ck.MakePDFDocument(options.metadata || {});
+    if (!doc) {
+      throw new Error('Failed to create PDF document.');
+    }
+
+    try {
+      // Begin page: returns a Canvas identical to our screen canvas
+      const pageCanvas = doc.beginPage(pageSize.width, pageSize.height);
+      if (!pageCanvas) {
+        throw new Error('Failed to begin PDF page.');
+      }
+
+      // Create temporary paint for PDF rendering
+      const pdfPaint = new this.ck.Paint();
+      pdfPaint.setAntiAlias(true);
+      pdfPaint.setDither(true);
+
+      // Reuse existing render context & mappers
+      const pdfContext: RenderContext = {
+        ck: this.ck,
+        canvas: pageCanvas,
+        paint: pdfPaint,
+        imageCache: this.imageCache,
+      };
+
+      // Draw scene to PDF canvas using the exact same pipeline
+      this.drawObject(pdfContext, container, TransformManager.identity());
+
+      // Finalize document
+      doc.endPage();
+      const pdfBytes = doc.close();
+
+      // Cleanup
+      pdfPaint.delete();
+      return pdfBytes;
+    } catch (err) {
+      doc.abort();
+      throw err;
+    }
+  }
+
+  /**
+   * Convenience method to trigger a browser download of the generated PDF.
+   */
+  async downloadPdf(container: PIXI.Container, options: PdfExportOptions = {}): Promise<void> {
+    const pdfBytes = await this.exportToPdf(container, options);
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = options.filename || 'export.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   destroy(): void {

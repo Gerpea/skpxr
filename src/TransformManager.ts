@@ -1,11 +1,14 @@
-// src/skia-wrapper/TransformManager.ts
-
 export class TransformManager {
   private static readonly IDENTITY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
+  /**
+   * Convert Pixi's 2D affine transform to Skia's row-major matrix.
+   * Pixi: { a, b, c, d, tx, ty } where:
+   *   a=scaleX, b=skewY, c=skewX, d=scaleY, tx/ty=translation
+   * Skia row-major: [scaleX, skewX, transX, skewY, scaleY, transY, 0, 0, 1]
+   */
   static pixiToSkiaMatrix(pixiTransform: any): Float32Array {
     const { a, b, c, d, tx, ty } = pixiTransform;
-    // Row-major: [scaleX, skewX, transX, skewY, scaleY, transY, 0, 0, 1]
     return new Float32Array([a, c, tx, b, d, ty, 0, 0, 1]);
   }
 

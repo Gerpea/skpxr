@@ -1,26 +1,26 @@
 export class UIController {
   private generateBtn: HTMLButtonElement;
-  private spriteBtn: HTMLButtonElement; // 🆕
+  private spriteBtn: HTMLButtonElement;
   private exportBtn: HTMLButtonElement;
   private statusEl: HTMLElement;
 
   constructor() {
     this.generateBtn = document.getElementById('btn-generate') as HTMLButtonElement;
-    this.spriteBtn = document.getElementById('btn-sprite') as HTMLButtonElement; // 🆕
+    this.spriteBtn = document.getElementById('btn-sprite') as HTMLButtonElement;
     this.exportBtn = document.getElementById('btn-export') as HTMLButtonElement;
     this.statusEl = document.getElementById('status') as HTMLElement;
     this.validateElements();
   }
 
   private validateElements(): void {
-    if (!this.generateBtn || !this.spriteBtn || !this.exportBtn || !this.statusEl) { // 🆕
+    if (!this.generateBtn || !this.spriteBtn || !this.exportBtn || !this.statusEl) {
       throw new Error('UI elements not found. Ensure index.html matches expected IDs.');
     }
   }
 
   public enableControls(): void {
     this.generateBtn.disabled = false;
-    this.spriteBtn.disabled = false; // 🆕
+    this.spriteBtn.disabled = false;
     this.exportBtn.disabled = false;
   }
 
@@ -28,7 +28,6 @@ export class UIController {
     this.generateBtn.addEventListener('click', callback);
   }
 
-  // 🆕 New handler
   public onAddSprite(callback: () => void): void {
     this.spriteBtn.addEventListener('click', callback);
   }

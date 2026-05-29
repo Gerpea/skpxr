@@ -1,39 +1,26 @@
+// example/src/utils/pdf-export.ts
 import { SkiaRenderer, type PdfExportOptions } from 'pixi-skia-wrapper';
 import * as PIXI from 'pixi.js-legacy';
 
 export async function exportSceneToPdf(
   skiaRenderer: SkiaRenderer,
   scene: PIXI.Container,
-  options: Omit<PdfExportOptions, 'includeSpritesAsBitmap'> = {
+  options: PdfExportOptions = {
     filename: 'pixi-skia-export.pdf',
-    pageSize: { width: 800, height: 600 }
+    pageSize: { width: 300, height: 300 },
+    // ✅ FIX: Set rasterDPI to 300+ for high-quality image rendering in PDF
+    metadata: {
+      title: 'Pixi-Skia Vector Export',
+      author: 'pixi-skia-wrapper',
+      creator: 'pixi-skia-wrapper',
+      producer: 'CanvasKit 0.41.1',
+      rasterDPI: 300 // 🔑 Critical: Prevents hard edges on embedded images
+    }
   }
 ): Promise<void> {
   try {
-    // Note: This requires CanvasKit built with PDF backend
-    // For demo purposes, we show the intended API
-    
-    const exporter = (skiaRenderer as any).getPdfExporter?.();
-    if (!exporter) {
-      throw new Error('PDF export not available. CanvasKit must be built with PDF backend.');
-    }
-
-    const pdfData = await exporter.exportToPdf(scene, {
-      ...options,
-      includeSpritesAsBitmap: true
-    });
-
-    const blob = new Blob([pdfData], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = options.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    console.log('✅ PDF exported successfully');
+    await skiaRenderer.downloadPdf(scene, options);
+    console.log('✅ PDF exported and downloaded successfully');
   } catch (err) {
     console.error('PDF export failed:', err);
     throw err;

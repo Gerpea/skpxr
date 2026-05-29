@@ -11,16 +11,14 @@ export class PixiApplication {
       backgroundColor: 0x1099bb,
       forceCanvas: true,
       resolution: window.devicePixelRatio || 1,
-      // ❌ DO NOT include autoDensity: true
       antialias: true
     });
 
     this.canvas = this.app.view as HTMLCanvasElement;
-    // ✅ Explicit CSS sizes prevent browser stretching
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
     this.canvas.style.display = 'block';
-
+    
     container.appendChild(this.canvas);
   }
 
@@ -29,6 +27,8 @@ export class PixiApplication {
 
   public resize(width: number, height: number): void {
     this.app.renderer.resize(width, height);
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
   }
 
   public destroy(): void {

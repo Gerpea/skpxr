@@ -1,4 +1,3 @@
-// src/skia-wrapper/mappers/SpriteMapper.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
@@ -15,7 +14,7 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     const { ck, canvas, paint, imageCache } = ctx;
     const texture = sprite.texture;
     const baseTexture = texture.baseTexture;
-    
+
     const dstW = texture.width;
     const dstH = texture.height;
     if (dstW <= 0 || dstH <= 0) return;
@@ -36,23 +35,22 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     try {
       canvas.concat(TransformManager.pixiToSkiaMatrix(sprite.transform.localTransform));
       canvas.translate(-sprite.anchor.x * dstW, -sprite.anchor.y * dstH);
-      
+
       const srcRect: [number, number, number, number] = [0, 0, skImage.width(), skImage.height()];
       const dstRect: [number, number, number, number] = [0, 0, dstW, dstH];
-      
-      // ✅ FIX: Enable anti-aliasing and dithering on the paint for smooth edges
+
+      // ✅ Enable anti-aliasing and dithering for smooth edges
       paint.setAntiAlias(true);
       paint.setDither(true);
-      
-      // ✅ FIX: Use drawImageRectOptions with FilterMode.Linear for smooth scaling
+
+      // ✅ Use drawImageRectOptions with FilterMode.Linear for smooth scaling
       // CanvasKit 0.41.1 API: drawImageRectOptions(img, src, dest, fm, mm, paint?)
-      // FilterMode.Linear = smooth/bilinear filtering, MipmapMode.None = no mipmaps
-      canvas.drawImageRectOptions(
+      canvas.drawImageRectCubic(
         skImage,
         srcRect,
         dstRect,
-        ck.FilterMode.Linear,
-        ck.MipmapMode.None,
+        1 / 3,  // B (Mitchell-Netravali)
+        1 / 3,  // C (Mitchell-Netravali)
         paint
       );
     } finally {
@@ -65,9 +63,9 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     if (!resource || !resource.source) return null;
     try {
       const source = resource.source;
-      if (source instanceof HTMLImageElement || 
-          source instanceof HTMLCanvasElement || 
-          source instanceof HTMLVideoElement) {
+      if (source instanceof HTMLImageElement ||
+        source instanceof HTMLCanvasElement ||
+        source instanceof HTMLVideoElement) {
         return await ck.MakeImageFromCanvasImageSource(source);
       }
     } catch (e) {
@@ -83,6 +81,6 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
       x, y
     );
     return local.x >= bounds.x && local.x <= bounds.x + bounds.width &&
-           local.y >= bounds.y && local.y <= bounds.y + bounds.height;
+      local.y >= bounds.y && local.y <= bounds.y + bounds.height;
   }
 }

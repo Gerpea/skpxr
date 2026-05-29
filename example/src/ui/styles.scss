@@ -1,11 +1,7 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
@@ -30,27 +26,18 @@ body {
     @include flex-between;
     flex-shrink: 0;
 
-    h1 {
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-
+    h1 { font-size: 1.1rem; font-weight: 500; }
+    
     .controls {
       display: flex;
       gap: $spacing-sm;
       @include flex-center;
     }
-
-    button {
-      @include button-base;
-    }
-
-    .status {
-      @include text-status($text-muted);
-    }
+    
+    button { @include button-base; }
+    .status { @include text-status($text-muted); }
   }
 
-  // Two-panel layout
   #render-panels {
     flex: 1;
     display: flex;
@@ -74,37 +61,30 @@ body {
       font-size: 0.9rem;
     }
 
-    .panel-title {
-      font-weight: 500;
-    }
-
-    .panel-fps {
-      color: $success;
+    .panel-title { font-weight: 500; }
+    .panel-fps { 
+      color: $success; 
       font-family: monospace;
       font-size: 0.85rem;
     }
 
-    // ✅ FIX: Center the canvas and remove stretching
     .canvas-wrapper {
       flex: 1;
-      display: flex; // Flexbox for perfect centering
-      justify-content: center; // Horizontal center
-      align-items: center; // Vertical center
-      background: #1099bb; // Match Pixi background
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #1099bb;
       overflow: hidden;
       position: relative;
     }
 
-    // ✅ CRITICAL: Do NOT set width/height here. Let JS control it.
-    .canvas-wrapper canvas {
+    canvas {
       display: block;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); // Optional visual separation
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
   }
 }
 
 @media (max-width: 768px) {
-  #render-panels {
-    flex-direction: column;
-  }
+  #render-panels { flex-direction: column; }
 }

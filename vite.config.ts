@@ -1,10 +1,9 @@
-// vite.config.ts
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import commonjs from "@rollup/plugin-commonjs"
-// ESM-compatible __dirname (since package.json has "type": "module")
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -32,13 +31,11 @@ export default defineConfig({
     },
 
     rollupOptions: {
-      // Externalize ONLY Pixi (consumer provides it)
       external: ['pixi.js-legacy'],
       output: {
         globals: {
           'pixi.js-legacy': 'PIXI'
         },
-        // Place WASM files in a predictable subdirectory
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith('.wasm')) {
             return 'canvaskit/[name][extname]';
@@ -55,7 +52,7 @@ export default defineConfig({
   assetsInclude: ['**/*.wasm'],
 
   optimizeDeps: {
-    exclude: ['canvaskit-wasm']  // ✅ Let it load natively
+    exclude: ['canvaskit-wasm'] 
   },
 
   resolve: {
@@ -65,7 +62,6 @@ export default defineConfig({
     }
   },
 
-  // Allow dev server to serve files from the vendor directory
   server: {
     fs: {
       strict: false,

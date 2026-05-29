@@ -1,3 +1,4 @@
+// src/skia-wrapper/mappers/ContainerMapper.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';

@@ -15,45 +15,45 @@ export class SceneFactory {
     const mainContainer = new PIXI.Container();
     const subContainer = new PIXI.Container();
 
-    // 🔴 g1: Ellipse (Scaled down to fit 300x300)
+    // 🔴 g1: Ellipse
     const g1 = new PIXI.Graphics();
     g1.beginFill('#ff0000');
-    g1.drawEllipse(0, 0, 40, 25); // Radius X: 40, Radius Y: 25
+    g1.drawEllipse(0, 0, 40, 25);
     g1.endFill();
-    g1.position.set(75, 75);      // Position inside 300x300
+    g1.position.set(75, 75);
     g1.angle = 30;
     g1.eventMode = 'static';
     g1.cursor = 'pointer';
     g1.hitArea = new PIXI.Ellipse(0, 0, 40, 25);
     g1.on('pointerdown', () => console.log('🔴 g1 pointerdown!'));
 
-    // 🔵 g2: Scaled & Rotated Rect (Scaled down)
+    // 🔵 g2: Scaled & Rotated Rect
     const g2 = new PIXI.Graphics();
     g2.beginFill('#0000ff');
-    g2.drawRect(-25, -35, 50, 70); // Width: 50, Height: 70
+    g2.drawRect(-25, -35, 50, 70);
     g2.endFill();
-    g2.position.set(150, 150);     // Position inside 300x300
+    g2.position.set(150, 150);
     g2.angle = 15;
     g2.scale.set(1.5, 1.7);
     g2.eventMode = 'static';
     g2.cursor = 'pointer';
     g2.on('pointerup', () => console.log('🔵 g2 pointerup!'));
 
-    // ⚪ g3: Line 1 (Scaled down)
+    // ⚪ g3: Line 1
     const g3 = new PIXI.Graphics();
-    g3.lineStyle(5, '#ffffff', 1); // Line width 5
+    g3.lineStyle(5, '#ffffff', 1);
     g3.moveTo(0, 0).lineTo(80, 60);
     g3.angle = -20;
 
-    // 🟡 g4: Line 2 (Scaled down)
+    // 🟡 g4: Line 2
     const g4 = new PIXI.Graphics();
     g4.lineStyle(5, '#ffff00', 1);
     g4.moveTo(0, 35).lineTo(80, -15);
     g4.angle = 20;
 
-    // 🖼️ Sprite (Scaled down)
-    const sprite = this.createDemoSprite();
-    sprite.position.set(220, 220);  // Position inside 300x300
+    // 🖼️ Sprite
+    const sprite = this.createRandomSprite();
+    sprite.position.set(220, 220);
     sprite.angle = -15;
     sprite.scale.set(0.8);
     sprite.eventMode = 'static';
@@ -71,42 +71,26 @@ export class SceneFactory {
     const g = new PIXI.Graphics();
     const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
     const color = colors[Math.floor(Math.random() * colors.length)];
-
+    
     if (Math.random() > 0.5) {
       g.beginFill(color);
       g.drawRect(
-        Math.random() * 300,
-        Math.random() * 300,
-        50 + Math.random() * 100,
-        50 + Math.random() * 100
+        Math.random() * 100,
+        Math.random() * 100,
+        30 + Math.random() * 40,
+        30 + Math.random() * 40
       );
       g.endFill();
     } else {
       g.lineStyle(4, color, 1);
-      g.moveTo(Math.random() * 400, Math.random() * 400);
-      g.lineTo(Math.random() * 400, Math.random() * 400);
+      g.moveTo(Math.random() * 150, Math.random() * 150);
+      g.lineTo(Math.random() * 150, Math.random() * 150);
     }
-
+    
     g.angle = Math.random() * 45 - 22.5;
     g.eventMode = 'static';
     g.on('pointerdown', () => console.log('🎲 Random shape clicked!'));
     return g;
-  }
-
-  private static createDemoSprite(): PIXI.Sprite {
-    const cvs = document.createElement('canvas');
-    cvs.width = 100;
-    cvs.height = 100;
-    const ctx = cvs.getContext('2d')!;
-
-    const grad = ctx.createRadialGradient(50, 50, 10, 50, 50, 45);
-    grad.addColorStop(0, '#4ade80');
-    grad.addColorStop(1, '#16a34a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 100, 100);
-
-    const texture = PIXI.Texture.from(cvs);
-    return new PIXI.Sprite(texture);
   }
 
   static createRandomSprite(): PIXI.Sprite {
@@ -114,11 +98,15 @@ export class SceneFactory {
     cvs.width = 80;
     cvs.height = 80;
     const ctx = cvs.getContext('2d')!;
-
+    
+    // Enable high-quality smoothing at source
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
     const type = Math.floor(Math.random() * 4);
 
     switch (type) {
-      case 0: // 🔴 Gradient Sphere
+      case 0: // Gradient Sphere
         const grad = ctx.createRadialGradient(40, 40, 5, 40, 40, 35);
         grad.addColorStop(0, '#ffffff');
         grad.addColorStop(0.5, '#ff6b6b');
@@ -127,7 +115,7 @@ export class SceneFactory {
         ctx.fillRect(0, 0, 80, 80);
         break;
 
-      case 1: // 🟦 Checkerboard
+      case 1: // Checkerboard
         const size = 20;
         for (let y = 0; y < 4; y++) {
           for (let x = 0; x < 4; x++) {
@@ -137,7 +125,7 @@ export class SceneFactory {
         }
         break;
 
-      case 2: // 🟡 Star / Polygon
+      case 2: // Star
         ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
         for (let i = 0; i < 10; i++) {
@@ -151,7 +139,7 @@ export class SceneFactory {
         ctx.stroke();
         break;
 
-      case 3: // 🟩 Emoji / Text Texture
+      case 3: // Emoji
         ctx.font = '64px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -160,20 +148,14 @@ export class SceneFactory {
         break;
     }
 
-    // Convert to persistent Data URL
     const texture = PIXI.Texture.from(cvs.toDataURL('image/png'));
     const sprite = new PIXI.Sprite(texture);
-
-    // Center anchor for proper rotation
+    
     sprite.anchor.set(0.5);
-
-    // Random position within 300x300
     sprite.position.set(40 + Math.random() * 220, 40 + Math.random() * 220);
-
-    // Random rotation and scale
     sprite.angle = Math.random() * 360;
     sprite.scale.set(0.5 + Math.random() * 1);
-
+    
     return sprite;
   }
 }
