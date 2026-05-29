@@ -8,4 +8,4 @@ export { GraphicsMapper } from './mappers/GraphicsMapper';
 export { SpriteMapper } from './mappers/SpriteMapper';
 
 export { TransformManager } from './TransformManager';
-export { CK } from './utils/ck_helpers';
+export { CK } from './utils/ck-helpers';

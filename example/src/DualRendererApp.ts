@@ -29,6 +29,7 @@ export class DualRendererApp {
             width: options.width,
             height: options.height,
             dpr: window.devicePixelRatio || 1,
+            wasmBaseUrl: '/canvaskit',
             ...options.skiaOptions
         });
 

@@ -1,10 +1,7 @@
-/// <reference types="vite/client" />
-
 import CanvasKitInit from 'canvaskit-wasm';
 import type { CanvasKit, Canvas, Surface, Paint, Path, Image } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext } from './types';
-import { TransformManager } from './TransformManager';
 import {
   MapperRegistry,
   ContainerMapper,
@@ -12,7 +9,7 @@ import {
   SpriteMapper,
   type SkiaMapper,
 } from './mappers';
-import { CK } from './utils/ck_helpers';
+import { CK } from './utils/ck-helpers';
 import { SceneRenderer } from './SceneRenderer';
 
 export class SkiaRenderer {
@@ -29,7 +26,7 @@ export class SkiaRenderer {
     Set<(x: number, y: number) => void>
   >();
 
-  private scene: SceneRenderer;
+  private scene!: SceneRenderer;
 
   constructor(private options: SkiaRendererOptions) {
     this.setupRegistry();

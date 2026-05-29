@@ -4,7 +4,7 @@ import type { CanvasKit } from 'canvaskit-wasm';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
 import { TransformManager } from '../TransformManager';
-import { CK } from '../utils/ck_helpers';
+import { CK } from '../utils/ck-helpers';
 
 export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
   priority = 20;

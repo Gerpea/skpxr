@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "vendor/canvaskit-wasm"
   ],
   "scripts": {
     "dev": "vite build --watch",
@@ -30,12 +31,12 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "canvaskit-wasm": "^0.41.1",
     "pixi.js-legacy": "^7.2.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.2.2",
+    "@rollup/plugin-commonjs": "^29.0.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "@vitest/coverage-v8": "^1.6.0",
