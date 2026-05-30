@@ -4,6 +4,7 @@ import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
 import { TransformManager } from '../TransformManager';
 import { CK } from '../utils/ck-helpers';
+import { mapBlendMode } from '../utils/blend-modes';
 
 export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   priority = 20;
@@ -29,15 +30,15 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     ctx.canvas.concat(TransformManager.pixiToSkiaMatrix(sprite.transform));
     ctx.canvas.translate(-sprite.anchor.x * w, -sprite.anchor.y * h);
     
-    // ✅ FIX 1: Copy the paint to safely modify alpha/tint without bleeding state to other objects
+    // Isolate paint state
     const spritePaint = ctx.paint.copy();
     let colorFilter: any = null;
 
     try {
-      // ✅ FIX 2: Use worldAlpha to correctly respect parent container alpha fading
+      // 1. Apply World Alpha
       spritePaint.setAlphaf(sprite.worldAlpha);
 
-      // Apply Tint
+      // 2. Apply Tint
       const tint = sprite.tint ?? 0xFFFFFF;
       if (tint !== 0xFFFFFF) {
         const tintColor = CK.parseColor(ctx.ck, tint, 1);
@@ -45,25 +46,20 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
         spritePaint.setColorFilter(colorFilter);
       }
 
-      // Draw Image
-    ctx.canvas.drawImageRectCubic(
+      // 3. Apply Blend Mode
+      const blendMode = mapBlendMode(sprite.blendMode, ctx.ck);
+      spritePaint.setBlendMode(blendMode);
+
+      // 4. Draw Image
+      ctx.canvas.drawImageRectOptions(
         img,
-       [0, 0, img.width(), img.height()],
+        [0, 0, img.width(), img.height()],
         [0, 0, w, h],
-        1 / 3,  // B (Mitchell-Netravali)
-        1 / 3,  // C (Mitchell-Netravali)
+        ctx.ck.FilterMode.Linear,
+        ctx.ck.MipmapMode.None,
         spritePaint
       );
-    //   ctx.canvas.drawImageRectOptions(
-    //     img,
-    //     [0, 0, img.width(), img.height()],
-    //     [0, 0, w, h],
-    //     ctx.ck.FilterMode.Linear,
-    //     ctx.ck.MipmapMode.None,
-    //     spritePaint
-    //   );
     } finally {
-      // ✅ FIX 3: Strict WASM memory cleanup
       if (colorFilter) colorFilter.delete();
       spritePaint.delete();
       ctx.canvas.restore();
@@ -71,17 +67,18 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   }
 
   hitTest(ctx: RenderContext, sprite: PIXI.Sprite, worldMatrix: Float32Array, x: number, y: number): boolean {
-    // Ignore fully transparent sprites
     if (sprite.worldAlpha <= 0) return false;
 
     const local = TransformManager.inverseTransformPoint(worldMatrix, x, y);
     const bounds = sprite.getLocalBounds(SpriteMapper._tempRect);
     
+    // Bounding Box Check
     if (local.x < bounds.x || local.x > bounds.x + bounds.width || 
         local.y < bounds.y || local.y > bounds.y + bounds.height) {
         return false;
     }
 
+    // Pixel-Perfect Alpha Check
     const tex = sprite.texture;
     const key = `sk_${tex.baseTexture.uid}`;
     const alphaMap = ctx.alphaCache?.get(key);
@@ -89,16 +86,18 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     if (alphaMap) {
         const baseW = tex.baseTexture.realWidth;
         const baseH = tex.baseTexture.realHeight;
+        
+        // Map local coords to base texture coords (handles trims/frames)
         const u = Math.floor(local.x - bounds.x + (tex.frame?.x || 0));
         const v = Math.floor(local.y - bounds.y + (tex.frame?.y || 0));
         
         if (u >= 0 && u < baseW && v >= 0 && v < baseH) {
-            return alphaMap[v * baseW + u] > 10;
+            return alphaMap[v * baseW + u] > 10; // Threshold
         }
         return false;
     }
 
-    return true;
+    return true; // Fallback to bounding box
   }
 
   private async loadImage(ck: any, base: PIXI.BaseTexture, alphaCache: Map<string, Uint8Array>): Promise<any | null> {
@@ -107,6 +106,7 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     
     const key = `sk_${base.uid}`;
     
+    // Extract Alpha Map for hit testing
     if (!alphaCache.has(key)) {
         try {
             const tempCanvas = document.createElement('canvas');
