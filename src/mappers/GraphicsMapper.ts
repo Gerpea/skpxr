@@ -46,7 +46,7 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
 
       // 4. Draw Shapes
       for (const item of data) {
-        const path = PathBuilderUtil.build(item.shape, item.type, ctx.ck);
+        const path = PathBuilderUtil.build(item.shape, item.type, ctx.ck, item.holes);
         if (!path) continue;
 
         const fs = item.fillStyle;
@@ -91,7 +91,7 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
     const local = TransformManager.inverseTransformPoint(worldMatrix, x, y);
 
     for (const item of data) {
-      const path = PathBuilderUtil.build(item.shape, item.type, ctx.ck);
+      const path = PathBuilderUtil.build(item.shape, item.type, ctx.ck, item.holes);
       if (!path) continue;
 
       let hit = false;

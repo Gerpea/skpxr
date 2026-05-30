@@ -24,10 +24,13 @@ async function init(): Promise<void> {
   // 3️⃣ Initialize Skia Renderer (New API: auto-syncs to Ticker.shared & ResizeObserver)
   const skiaRenderer = new SkiaRenderer({
     scene,
-    canvas: document.getElementById('skia-canvas') as HTMLCanvasElement,
+    width: 300,
+    height: 300,
+    backgroundColor: pixiApp.renderer.background.color,
     wasmBaseUrl: '/canvaskit/'
   });
   await skiaRenderer.init();
+  document.getElementById('skia-container')!.appendChild(skiaRenderer.view);
 
   // 4️⃣ Add Initial Shapes & Sprites
   const initialObjects = SceneFactory.createSampleScene();

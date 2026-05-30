@@ -1,4 +1,3 @@
-// src/skia-wrapper/types.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Canvas, Paint, Image, PDFMetadata } from 'canvaskit-wasm';
 
@@ -6,17 +5,20 @@ export interface RenderContext {
   ck: CanvasKit;
   canvas: Canvas | null;
   paint: Paint | null;
-  imageCache: Map<string, any>;
-  /** Stores the alpha channel (Uint8Array) for pixel-perfect hit testing */
+  imageCache: Map<string, Image>;
   alphaCache: Map<string, Uint8Array>;
 }
 
 export interface SkiaRendererOptions {
   scene: PIXI.Container;
-  canvas: HTMLCanvasElement;
+  canvas?: HTMLCanvasElement;
+  width?: number;
+  height?: number;
+  backgroundColor?: number | string;
   dpr?: number;
   wasmBaseUrl?: string;
   locateFile?: (file: string) => string;
+  backend?: 'webgl' | 'cpu';
 }
 
 export interface PdfExportOptions {

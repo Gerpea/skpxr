@@ -10,6 +10,9 @@ import { CK } from './utils/ck-helpers';
 import { PathBuilderUtil } from './utils/path-builder';
 
 export class SkiaRenderer {
+  private isGPU = false;
+  public readonly view: HTMLCanvasElement;
+
   private ck: CanvasKit | null = null;
   private surface: Surface | null = null;
   private canvas: Canvas | null = null;
@@ -23,6 +26,10 @@ export class SkiaRenderer {
   private tickerBound = false;
 
   constructor(private options: SkiaRendererOptions) {
+    // ✅ Canvas Creation Support
+    this.view = options.canvas || document.createElement('canvas');
+    this.options.canvas = this.view; // Normalize for internal use
+
     const containerMapper = new ContainerMapper();
     containerMapper.setRenderer(this);
     this.registry.register(containerMapper);
@@ -30,8 +37,18 @@ export class SkiaRenderer {
     this.registry.register(new SpriteMapper());
   }
 
+  get width(): number {
+    return this.options.width ?? this.view.clientWidth ?? 800;
+  }
+  get height(): number {
+    return this.options.height ?? this.view.clientHeight ?? 600;
+  }
+  get screen(): PIXI.Rectangle {
+    return new PIXI.Rectangle(0, 0, this.width, this.height);
+  }
+
   async init(): Promise<void> {
-    const { dpr = 1, wasmBaseUrl, locateFile, canvas: el } = this.options;
+    const { dpr = 1, wasmBaseUrl, locateFile, canvas: el, backend = 'webgl' } = this.options;
     const loc =
       locateFile ||
       (f => {
@@ -43,16 +60,37 @@ export class SkiaRenderer {
     this.updateCanvasSize();
 
     this.resizeObserver = new ResizeObserver(() => this.updateCanvasSize());
-    this.resizeObserver.observe(el);
+    this.resizeObserver.observe(el!);
 
-    this.surface = this.ck.MakeSWCanvasSurface(el);
-    if (!this.surface) throw new Error('MakeSWCanvasSurface returned null');
+    // ✅ GPU / CPU Backend Selection
+    if (backend === 'webgl') {
+      // Try to create a hardware-accelerated WebGL surface (Matches Pixi's default)
+      this.surface = this.ck.MakeWebGLCanvasSurface(el!, this.ck.ColorSpace.SRGB, {
+        // Optional: Pass specific WebGL context attributes if needed
+        // antialias: true,
+        // alpha: true
+      });
+
+      if (this.surface) {
+        this.isGPU = true;
+        console.log('🚀 SkiaRenderer: Using WebGL (GPU) backend.');
+      } else {
+        console.warn('⚠️ WebGL surface creation failed. Falling back to CPU.');
+      }
+    }
+
+    // Fallback to CPU (Software) if WebGL failed or was explicitly requested
+    if (!this.surface) {
+      this.surface = this.ck.MakeSWCanvasSurface(el!);
+      this.isGPU = false;
+      console.log('💻 SkiaRenderer: Using CPU (Software) backend.');
+    }
 
     this.canvas = this.surface.getCanvas();
     this.paint = CK.makePaint(this.ck);
 
     this.interactionManager = new InteractionManager(
-      el,
+      el!,
       this.ck,
       this.registry,
       () => this.options.scene,
@@ -63,17 +101,52 @@ export class SkiaRenderer {
     this.tickerBound = true;
   }
 
+  get backendType(): 'webgl' | 'cpu' {
+    return this.isGPU ? 'webgl' : 'cpu';
+  }
+
   private onTick = (): void => {
     if (this.options.scene) this.renderContainer(this.options.scene);
   };
 
   private updateCanvasSize(): void {
     const { dpr = 1, canvas: el } = this.options;
-    const rect = el.getBoundingClientRect();
-    el.width = Math.ceil(rect.width * dpr);
-    el.height = Math.ceil(rect.height * dpr);
-    el.style.width = `${rect.width}px`;
-    el.style.height = `${rect.height}px`;
+    if (!el) return;
+
+    let width = this.options.width;
+    let height = this.options.height;
+
+    // 1. If explicit width/height weren't provided, try to read from CSS/DOM
+    if (width === undefined || height === undefined) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        width = width ?? rect.width;
+        height = height ?? rect.height;
+      } else {
+        // 2. Fallback to scene bounds or standard 800x600 default
+        width = width ?? (this.options.scene as any).width ?? 800;
+        height = height ?? (this.options.scene as any).height ?? 600;
+      }
+    }
+
+    // Save back to options so getters reflect the current size
+    this.options.width = width;
+    this.options.height = height;
+
+    // Apply to canvas internal resolution and CSS size
+    el.width = Math.ceil(width * dpr);
+    el.height = Math.ceil(height * dpr);
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+  }
+
+  public resize(width: number, height: number): void {
+    this.options.width = width;
+    this.options.height = height;
+    this.updateCanvasSize();
+
+    // Re-render immediately to prevent flashing/stretching
+    if (this.options.scene) this.renderContainer(this.options.scene);
   }
 
   renderContainer(container: PIXI.Container): void {
@@ -85,7 +158,15 @@ export class SkiaRenderer {
       imageCache: this.imageCache,
       alphaCache: this.alphaCache,
     };
-    this.canvas.clear(this.ck.Color4f(0, 0, 0, 0));
+
+    // ✅ Background Color Clearing Support
+    const bgColor = this.options.backgroundColor;
+    if (bgColor !== undefined && bgColor !== null) {
+      this.canvas.clear(CK.parseColor(this.ck, bgColor, 1));
+    } else {
+      this.canvas.clear(this.ck.Color4f(0, 0, 0, 0));
+    }
+
     this.drawObject(ctx, container, TransformManager.identity());
     this.surface?.flush();
   }
@@ -101,11 +182,9 @@ export class SkiaRenderer {
     let maskLayerPaint: Paint | null = null;
 
     if (mask) {
-      // Pixi uses Graphics for vector masks (stencil/clip) and Sprites/Containers for alpha masks.
       const isVectorMask = mask instanceof PIXI.Graphics && !(mask as any).isSpriteMask;
 
       if (isVectorMask) {
-        // 1. Vector Mask (Fast, binary clipping)
         const maskPath = this.buildMaskPath(ctx, mask, worldMatrix);
         if (maskPath) {
           ctx.canvas?.save();
@@ -114,25 +193,20 @@ export class SkiaRenderer {
           hasVectorMask = true;
         }
       } else {
-        // 2. Alpha Mask (Supports transparency, sprites, containers)
         objLayerPaint = new ctx.ck.Paint();
-        ctx.canvas?.saveLayer(objLayerPaint, null); // Layer 1: The Object
+        ctx.canvas?.saveLayer(objLayerPaint, null);
 
         maskLayerPaint = new ctx.ck.Paint();
-        maskLayerPaint.setBlendMode(ctx.ck.BlendMode.DstIn); // Layer 2: The Mask (Alpha only)
+        maskLayerPaint.setBlendMode(ctx.ck.BlendMode.DstIn);
         hasAlphaMask = true;
       }
     }
 
-    // Draw the actual object
     this.registry.getMapper(obj)?.draw(ctx, obj as any, worldMatrix);
 
     if (hasAlphaMask && mask && maskLayerPaint && objLayerPaint) {
-      // Save layer for the mask with DstIn blend mode
       ctx.canvas?.saveLayer(maskLayerPaint, null);
 
-      // To draw the mask correctly regardless of where it is in the scene graph,
-      // we calculate its parent's world transform relative to the current canvas matrix.
       const currentCanvasMatrix = new Float32Array(ctx.canvas!.getTotalMatrix());
       const currentInv = TransformManager.invert(currentCanvasMatrix);
 
@@ -149,25 +223,22 @@ export class SkiaRenderer {
         if (maskMapper) {
           const maskWorldMatrix = TransformManager.multiply(
             parentSkiaMatrix,
-            TransformManager.pixiToSkiaMatrix(mask.transform.localTransform)
+            TransformManager.pixiToSkiaMatrix(mask.transform)
           );
           maskMapper.draw(ctx, mask, maskWorldMatrix);
         }
       }
 
-      ctx.canvas?.restore(); // Composites Mask onto Object using DstIn
-      ctx.canvas?.restore(); // Composites Object onto Main Canvas using SrcOver
+      ctx.canvas?.restore();
+      ctx.canvas?.restore();
 
       maskLayerPaint.delete();
       objLayerPaint.delete();
     } else if (hasVectorMask) {
-      ctx.canvas?.restore(); // Restore vector clip
+      ctx.canvas?.restore();
     }
   }
 
-  /**
-   * Builds the mask path and transforms it into the current canvas coordinate space (for Vector Masks).
-   */
   private buildMaskPath(
     ctx: RenderContext,
     mask: PIXI.Graphics,
@@ -187,7 +258,7 @@ export class SkiaRenderer {
     const builder = new ctx.ck.PathBuilder();
     try {
       for (const item of data) {
-        const shapePath = PathBuilderUtil.build(item.shape, item.type, ctx.ck);
+        const shapePath = PathBuilderUtil.build(item.shape, item.type, ctx.ck, item.holes);
         if (shapePath) {
           builder.addPath(shapePath);
           shapePath.delete();
@@ -210,7 +281,6 @@ export class SkiaRenderer {
     return this.registry.getMapper(obj)?.hitTest(ctx, obj as any, worldMatrix, x, y) ?? false;
   }
 
-  // 🖱️ Interaction API
   on(event: string, cb: (e: InteractionEvent) => void): void {
     this.interactionManager?.on(event, cb);
   }
@@ -218,14 +288,13 @@ export class SkiaRenderer {
     this.interactionManager?.off(event, cb);
   }
 
-  // 📄 PDF Export (Reuses Mappers)
   async exportToPdf(options: PdfExportOptions = {}): Promise<Uint8Array> {
     if (!this.ck?.pdf) throw new Error('PDF support not enabled in CanvasKit build');
     if (!this.options.scene) throw new Error('No scene provided for PDF export');
 
     const page = options.pageSize || {
-      width: this.options.canvas.clientWidth,
-      height: this.options.canvas.clientHeight,
+      width: this.options.canvas!.clientWidth,
+      height: this.options.canvas!.clientHeight,
     };
 
     const doc = this.ck.MakePDFDocument(options.metadata || {});
