@@ -3,6 +3,7 @@ import type { CanvasKit } from 'canvaskit-wasm';
 import type { RenderContext } from './types';
 import { MapperRegistry } from './mappers';
 import { TransformManager } from './TransformManager';
+import { PixiEventBridge } from './PixiEventBridge';
 
 export interface InteractionEvent {
   type: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointerover' | 'pointerout';
@@ -25,8 +26,7 @@ export class InteractionManager {
     canvas: HTMLCanvasElement,
     ck: CanvasKit,
     registry: MapperRegistry,
-    getScene: () => PIXI.Container | null,
-    alphaCache: Map<string, Uint8Array> // ✅ Accept shared alpha cache
+    getScene: () => PIXI.Container | null
   ) {
     this.canvas = canvas;
     this.ck = ck;
@@ -34,8 +34,7 @@ export class InteractionManager {
     this.getScene = getScene;
     canvas.style.touchAction = 'none';
 
-    // ✅ Provide the alpha cache to the hit-test context
-    this.hitCtx = { ck, canvas: null, paint: null, imageCache: new Map(), alphaCache };
+    this.hitCtx = { ck, canvas: null, paint: null, imageCache: new Map(), alphaCache: new Map() };
     this.bindEvents();
   }
 
@@ -46,11 +45,11 @@ export class InteractionManager {
     this.canvas.addEventListener('pointerleave', this.onOut);
   }
 
+  // ✅ Renderer-level listeners (optional, for global canvas events)
   on(event: string, cb: (e: InteractionEvent) => void): void {
     if (!this.callbacks.has(event)) this.callbacks.set(event, new Set());
     this.callbacks.get(event)!.add(cb);
   }
-
   off(event: string, cb: (e: InteractionEvent) => void): void {
     this.callbacks.get(event)?.delete(cb);
   }
@@ -67,34 +66,56 @@ export class InteractionManager {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
-  private onDown = (e: PointerEvent) => this.emit('pointerdown', this.hitTest(e));
-  private onUp = (e: PointerEvent) => this.emit('pointerup', this.hitTest(e));
+  private onDown = (e: PointerEvent) => this.processEvent('pointerdown', e);
+  private onUp = (e: PointerEvent) => this.processEvent('pointerup', e);
 
   private onMove = (e: PointerEvent) => {
     const ev = this.hitTest(e);
+
     if (ev.target !== this.overTarget) {
-      if (this.overTarget)
-        this.emit('pointerout', { ...ev, target: this.overTarget, type: 'pointerout' });
-      if (ev.target) this.emit('pointerover', { ...ev, type: 'pointerover' });
+      if (this.overTarget) {
+        this.emitRendererEvent('pointerout', {
+          ...ev,
+          target: this.overTarget,
+          type: 'pointerout',
+        });
+        // ✅ Removed local parameter
+        PixiEventBridge.dispatch('pointerout', this.overTarget, ev.global, e);
+      }
+      if (ev.target) {
+        this.emitRendererEvent('pointerover', { ...ev, type: 'pointerover' });
+        PixiEventBridge.dispatch('pointerover', ev.target, ev.global, e);
+      }
       this.overTarget = ev.target;
     }
-    this.emit('pointermove', ev);
+
+    this.emitRendererEvent('pointermove', ev);
+    PixiEventBridge.dispatch('pointermove', ev.target, ev.global, e);
   };
 
   private onOut = (e: PointerEvent) => {
     if (this.overTarget) {
-      this.emit('pointerout', {
-        type: 'pointerout',
+      const ev = {
+        type: 'pointerout' as const,
         target: this.overTarget,
         global: { x: 0, y: 0 },
         local: { x: 0, y: 0 },
         originalEvent: e,
-      });
+      };
+      this.emitRendererEvent('pointerout', ev);
+      PixiEventBridge.dispatch('pointerout', this.overTarget, { x: 0, y: 0 }, e);
     }
     this.overTarget = null;
   };
 
-  private emit(type: string, ev: InteractionEvent): void {
+  private processEvent(type: 'pointerdown' | 'pointerup', e: PointerEvent): void {
+    const ev = this.hitTest(e);
+    this.emitRendererEvent(type, ev);
+    // ✅ Removed local parameter
+    PixiEventBridge.dispatch(type, ev.target, ev.global, e);
+  }
+
+  private emitRendererEvent(type: string, ev: InteractionEvent): void {
     this.callbacks.get(type)?.forEach(cb => cb({ ...ev, type: type as any }));
   }
 
@@ -115,6 +136,7 @@ export class InteractionManager {
     return { type: 'pointermove', target, global, local, originalEvent: e };
   }
 
+  /** Recursive hit test that respects Pixi's eventMode, interactiveChildren, and hitArea */
   private recursiveHitTest(
     obj: PIXI.DisplayObject,
     parentMatrix: Float32Array,
@@ -123,21 +145,30 @@ export class InteractionManager {
   ): PIXI.DisplayObject | null {
     if (!obj.visible || obj.alpha === 0) return null;
 
-    // Calculate world matrix for this object
     const world = TransformManager.multiply(
       parentMatrix,
       TransformManager.pixiToSkiaMatrix(obj.transform)
     );
 
-    // ✅ FIX 1: Check children FIRST (back-to-front / top-most first)
-    if (obj instanceof PIXI.Container) {
+    // ✅ Check children FIRST (back-to-front), but respect interactiveChildren
+    if (obj instanceof PIXI.Container && (obj as any).interactiveChildren !== false) {
       for (let i = obj.children.length - 1; i >= 0; i--) {
         const hit = this.recursiveHitTest(obj.children[i], world, x, y);
-        if (hit) return hit; // Stop immediately and return the deepest child hit
+        if (hit) return hit;
       }
     }
 
-    // ✅ FIX 2: Check the object itself ONLY if no children were hit
+    // ✅ Check if this object is interactive
+    if (!PixiEventBridge.isInteractive(obj)) return null;
+
+    // ✅ Use explicit hitArea if provided (bypasses mapper hit test)
+    if (obj.hitArea) {
+      const local = TransformManager.inverseTransformPoint(world, x, y);
+      if (obj.hitArea.contains(local.x, local.y)) return obj;
+      return null;
+    }
+
+    // ✅ Fallback to mapper hit test (Graphics, Sprite, etc.)
     const mapper = this.registry.getMapper(obj);
     if (mapper?.hitTest(this.hitCtx, obj, world, x, y)) {
       return obj;

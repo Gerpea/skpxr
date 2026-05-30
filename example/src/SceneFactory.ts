@@ -89,7 +89,20 @@ export class SceneFactory {
     
     g.angle = Math.random() * 45 - 22.5;
     g.eventMode = 'static';
+    g.cursor = 'pointer';
     g.on('pointerdown', () => console.log('🎲 Random shape clicked!'));
+
+    g.on('pointerdown', (e) => {
+      console.log('Clicked sprite!', e.target, e.global.x, e.getLocalPosition(g.parent));
+      e.target.tint = 0xCCCCCC;
+      e.stopPropagation(); // ✅ Works!
+    });
+    g.on('pointerup', (e) => {
+      e.target.tint = 0xFFFFFF;
+    });
+    g.on('pointerover', () => { g.scale.set(1.1); });
+    g.on('pointerout', () => { g.scale.set(1.0); });
+
     return g;
   }
 

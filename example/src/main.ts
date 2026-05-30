@@ -53,21 +53,21 @@ async function init(): Promise<void> {
   });
 
   // 6️⃣ Skia Interaction (Pixi-like API)
-  skiaRenderer.on('pointerdown', (e) => {
-    if (e.target) {
-      console.log(`👆 Skia Clicked: ${e.target.constructor.name}`);
-      // Visual feedback: toggle tint
-      e.target.tint = e.target.tint === 0xFFFFFF ? 0xCCCCCC : 0xFFFFFF;
-    }
-  });
+  // skiaRenderer.on('pointerdown', (e) => {
+  //   if (e.target) {
+  //     console.log(`👆 Skia Clicked: ${e.target.constructor.name}`);
+  //     // Visual feedback: toggle tint
+  //     e.target.tint = e.target.tint === 0xFFFFFF ? 0xCCCCCC : 0xFFFFFF;
+  //   }
+  // });
 
-  skiaRenderer.on('pointerover', () => {
-    (document.getElementById('skia-canvas') as HTMLCanvasElement).style.cursor = 'pointer';
-  });
+  // skiaRenderer.on('pointerover', () => {
+  //   (document.getElementById('skia-canvas') as HTMLCanvasElement).style.cursor = 'pointer';
+  // });
 
-  skiaRenderer.on('pointerout', () => {
-    (document.getElementById('skia-canvas') as HTMLCanvasElement).style.cursor = 'default';
-  });
+  // skiaRenderer.on('pointerout', () => {
+  //   (document.getElementById('skia-canvas') as HTMLCanvasElement).style.cursor = 'default';
+  // });
 
   // 7️⃣ FPS Tracking
   let pFrames = 0, sFrames = 0, lastTime = performance.now();
