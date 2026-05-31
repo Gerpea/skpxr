@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path } from 'canvaskit-wasm';
 import type { RenderContext } from './types';
 import { MapperRegistry } from './mappers';
-import { TH } from './utils/transform-helpers';
+import { TH } from './utils';
 import { PixiEventBridge } from './PixiEventBridge';
 
 export interface InteractionEvent {

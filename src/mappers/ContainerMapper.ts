@@ -2,7 +2,7 @@
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TH } from '../utils/transform-helpers';
+import { TH } from '../utils';
 import type { SkiaRenderer } from '../SkiaRenderer';
 
 export class ContainerMapper implements SkiaMapper<PIXI.Container> {

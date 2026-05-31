@@ -2,9 +2,7 @@
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TH } from '../utils/transform-helpers';
-import { CK } from '../utils/ck-helpers';
-import { mapBlendMode } from '../utils/blend-modes';
+import { TH, CK, mapBlendMode } from '../utils';
 
 export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   priority = 20;

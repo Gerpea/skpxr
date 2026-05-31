@@ -3,11 +3,9 @@ import CanvasKitInit from 'canvaskit-wasm';
 import type { CanvasKit, Canvas, Surface, Paint, Image, Path } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
-import { TH } from './utils/transform-helpers';
+import { TH, CK, PathBuilderUtil } from './utils';
 import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
 import { InteractionManager, type InteractionEvent } from './InteractionManager';
-import { CK } from './utils/ck-helpers';
-import { PathBuilderUtil } from './utils/path-builder';
 
 export class SkiaRenderer {
   private isGPU = false;

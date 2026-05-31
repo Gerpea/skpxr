@@ -3,10 +3,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path, ColorFilter } from 'canvaskit-wasm';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TH } from '../utils/transform-helpers';
-import { CK } from '../utils/ck-helpers';
-import { mapBlendMode } from '../utils/blend-modes';
-import { PathBuilderUtil } from '../utils/path-builder';
+import { TH, CK, mapBlendMode, PathBuilderUtil } from '../utils';
 
 export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
   priority = 20;
