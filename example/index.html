@@ -1,24 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Skia Renderer Examples - Pixi.js vs Skia CanvasKit</title>
-</head>
-<body>
-  <div id="app">
-    <!-- Drawer - always visible -->
-    <aside id="example-drawer">
-      <h2>Examples</h2>
-      <div id="example-list"></div>
-    </aside>
-    
-    <!-- Main Content Area -->
-    <main id="example-container">
-      <!-- Examples will be dynamically mounted here -->
-    </main>
-  </div>
-
-  <script type="module" src="/src/main.ts"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SKPXR Examples</title>
+    <style>
+      body { margin: 0; background: #1e1e1e; }
+      #root { height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

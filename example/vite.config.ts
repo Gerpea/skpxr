@@ -1,16 +1,20 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
-import commonjs from "@rollup/plugin-commonjs"
+import commonjs from "@rollup/plugin-commonjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? './' : '/',
+
   root: '.',
   publicDir: 'public',
 
   plugins: [
+    react(),
     dts({
       include: ['src'],
       exclude: ['node_modules', 'vendor', 'example', 'dist'],
@@ -45,6 +49,20 @@ export default defineConfig({
 
   optimizeDeps: {
     exclude: ['skpxr', 'canvaskit-wasm']
+  },
+
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          monaco: ['@monaco-editor/react'],
+          pixi: ['pixi.js-legacy']
+        }
+      }
+    }
   },
 
   css: {
