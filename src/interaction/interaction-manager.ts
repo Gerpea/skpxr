@@ -69,7 +69,13 @@ export class InteractionManager {
 
     private getCoords(e: PointerEvent): { x: number; y: number } {
         const r = this.canvas.getBoundingClientRect();
-        return { x: e.clientX - r.left, y: e.clientY - r.top };
+        // Normalize against CSS size to handle any scaling/stretching
+        const scaleX = this.canvas.clientWidth / r.width;
+        const scaleY = this.canvas.clientHeight / r.height;
+        return { 
+            x: (e.clientX - r.left) * scaleX, 
+            y: (e.clientY - r.top) * scaleY 
+        };
     }
 
     private onDown = (e: PointerEvent) => {
@@ -173,16 +179,12 @@ export class InteractionManager {
         const global = this.getCoords(e);
         const scene = this.getScene();
 
-        // ✅ Sync transforms before hit-testing (matches render pass)
+        // ✅ CRITICAL: Sync transforms before hit-testing (matches render pass)
         if (scene) {
-            try {
-                scene.updateTransform();
-            } catch {
-                try {
-                    (scene as any)._recursivePostUpdateTransform?.();
-                } catch {
-                    (scene.transform as any).updateLocalTransform?.();
-                }
+            try { scene.updateTransform(); }
+            catch {
+                try { (scene as any)._recursivePostUpdateTransform?.(); }
+                catch { (scene.transform as any).updateLocalTransform?.(); }
             }
         }
 

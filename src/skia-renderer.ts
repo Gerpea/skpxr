@@ -26,7 +26,6 @@ export class SkiaRenderer {
   constructor(private options: SkiaRendererOptions) {
     this.view = options.canvas || document.createElement('canvas');
     this.options.canvas = this.view;
-
     const containerMapper = new ContainerMapper();
     containerMapper.setRenderer(this);
     this.registry.register(containerMapper);
@@ -47,7 +46,7 @@ export class SkiaRenderer {
   }
 
   async init(): Promise<void> {
-    const { wasmBaseUrl, locateFile, canvas: el, backend = 'webgl' } = this.options;
+    const { dpr = 1, wasmBaseUrl, locateFile, canvas: el, backend = 'webgl' } = this.options;
     const loc =
       locateFile ||
       ((f: string) => {
@@ -56,14 +55,16 @@ export class SkiaRenderer {
       });
 
     this.ck = await CanvasKitInit({ locateFile: loc });
+
+    // Initial setup
     this.updateCanvasSize();
+    this.applyDprScale(); // Apply scale after initial surface creation
 
     this.masking = new Masking(this.ck, this.registry);
 
     this.resizeObserver = new ResizeObserver(() => this.updateCanvasSize());
     this.resizeObserver.observe(el!);
 
-    // GPU / CPU Backend Selection
     if (backend === 'webgl') {
       this.surface = this.ck.MakeWebGLCanvasSurface(el!, this.ck.ColorSpace.SRGB);
       if (this.surface) {
@@ -81,10 +82,6 @@ export class SkiaRenderer {
     }
 
     this.canvas = this.surface.getCanvas();
-
-    // ✅ Apply persistent DPR scale to initial surface
-    this.applyDprScale();
-
     this.paint = CK.makePaint(this.ck);
 
     this.interactionManager = new InteractionManager(
@@ -107,9 +104,7 @@ export class SkiaRenderer {
   };
 
   /**
-   * ✅ Applies persistent DPR scale to current canvas.
-   * Must be called after EVERY surface creation/recreation.
-   * Do NOT wrap in save()/restore() — this is the base coordinate system.
+   * Applies persistent DPR scale to current canvas.
    */
   private applyDprScale(): void {
     if (!this.canvas) return;
@@ -143,7 +138,6 @@ export class SkiaRenderer {
     // Only act if physical size actually changed
     if (el.width === physW && el.height === physH) return;
 
-    // Store logical dimensions BEFORE destroying context
     this.options.width = width;
     this.options.height = height;
 
@@ -174,7 +168,7 @@ export class SkiaRenderer {
     // ✅ Re-apply persistent DPR scale to NEW surface
     this.applyDprScale();
 
-    // Recreate paint (old references may point to deleted GPU resources)
+    // Recreate paint
     this.paint?.delete();
     this.paint = this.canvas ? CK.makePaint(this.ck) : null;
   }
@@ -220,7 +214,6 @@ export class SkiaRenderer {
       this.canvas.clear(this.ck.Color4f(0, 0, 0, 0));
     }
 
-    // ✅ NO per-frame DPR scale here — persistent scale from applyDprScale() handles it
     this.drawObject(ctx, container, TH.identity());
     this.surface.flush();
   }
@@ -282,7 +275,6 @@ export class SkiaRenderer {
         alphaCache: this.alphaCache,
       };
 
-      // ✅ Force transform update for PDF export too
       try {
         this.options.scene.updateTransform();
       } catch {

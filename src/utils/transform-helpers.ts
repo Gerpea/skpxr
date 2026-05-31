@@ -4,15 +4,6 @@ export class TH {
     private static readonly IDENTITY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
     static pixiToSkiaMatrix(pixiTransform: PIXI.Transform): Float32Array {
-        // ✅ Use worldTransform if it has been updated (non-identity or non-zero translation)
-        // Pixi updates worldTransform during updateTransform() before rendering
-        const wt = pixiTransform.worldTransform;
-        if (wt && (wt.a !== 1 || wt.b !== 0 || wt.c !== 0 || wt.d !== 1 || wt.tx !== 0 || wt.ty !== 0)) {
-            return new Float32Array([wt.a, wt.c, wt.tx, wt.b, wt.d, wt.ty, 0, 0, 1]);
-        }
-
-        // ✅ Fallback: Construct from LIVE properties (always current, never stale)
-        // position.x/y are set synchronously on assignment, unlike cached localTransform
         const { x, y } = pixiTransform.position;
         const { x: sx, y: sy } = pixiTransform.scale;
         const rotation = pixiTransform.rotation;
