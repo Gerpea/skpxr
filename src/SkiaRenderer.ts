@@ -3,7 +3,7 @@ import CanvasKitInit from 'canvaskit-wasm';
 import type { CanvasKit, Canvas, Surface, Paint, Image, Path } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
-import { TransformManager } from './TransformManager';
+import { TH } from './utils/transform-helpers';
 import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
 import { InteractionManager, type InteractionEvent } from './InteractionManager';
 import { CK } from './utils/ck-helpers';
@@ -182,7 +182,7 @@ export class SkiaRenderer {
       this.canvas.clear(this.ck.Color4f(0, 0, 0, 0));
     }
 
-    this.drawObject(ctx, container, TransformManager.identity());
+    this.drawObject(ctx, container, TH.identity());
     this.surface?.flush();
   }
 
@@ -201,11 +201,11 @@ export class SkiaRenderer {
           ctx.canvas?.save();
 
           // Calculate transform: mask-local → canvas-world space
-          const maskWorld = TransformManager.pixiToSkiaMatrix(mask.transform.worldTransform);
-          const worldInv = TransformManager.invert(worldMatrix);
+          const maskWorld = TH.pixiToSkiaMatrix(mask.transform.worldTransform);
+          const worldInv = TH.invert(worldMatrix);
 
           if (worldInv) {
-            const relMatrix = TransformManager.multiply(maskWorld, worldInv);
+            const relMatrix = TH.multiply(maskWorld, worldInv);
 
             // ✅ Apply transform by rebuilding path with matrix
             const builder = new ctx.ck!.PathBuilder();
@@ -242,7 +242,7 @@ export class SkiaRenderer {
 
         const maskMapper = this.registry.getMapper(mask);
         if (maskMapper) {
-          const maskWorldMatrix = TransformManager.pixiToSkiaMatrix(mask.transform.worldTransform);
+          const maskWorldMatrix = TH.pixiToSkiaMatrix(mask.transform.worldTransform);
           maskMapper.draw(ctx, mask, maskWorldMatrix);
         }
 
@@ -320,7 +320,7 @@ export class SkiaRenderer {
         alphaCache: this.alphaCache,
       };
 
-      this.drawObject(ctx, this.options.scene, TransformManager.identity());
+      this.drawObject(ctx, this.options.scene, TH.identity());
       doc.endPage();
       return doc.close();
     } catch (e) {

@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path } from 'canvaskit-wasm';
 import type { RenderContext } from './types';
 import { MapperRegistry } from './mappers';
-import { TransformManager } from './TransformManager';
+import { TH } from './utils/transform-helpers';
 import { PixiEventBridge } from './PixiEventBridge';
 
 export interface InteractionEvent {
@@ -188,17 +188,15 @@ export class InteractionManager {
   private hitTest(e: PointerEvent): InteractionEvent {
     const global = this.getCoords(e);
     const scene = this.getScene();
-    const target = scene
-      ? this.recursiveHitTest(scene, TransformManager.identity(), global.x, global.y)
-      : null;
+    const target = scene ? this.recursiveHitTest(scene, TH.identity(), global.x, global.y) : null;
     let local = {
       x: global.x,
       y: global.y,
     };
 
     if (target) {
-      const m = TransformManager.pixiToSkiaMatrix(target.transform);
-      const p = TransformManager.inverseTransformPoint(m, global.x, global.y);
+      const m = TH.pixiToSkiaMatrix(target.transform);
+      const p = TH.inverseTransformPoint(m, global.x, global.y);
       local = p;
     }
 
@@ -213,10 +211,7 @@ export class InteractionManager {
   ): PIXI.DisplayObject | null {
     if (!obj.visible || obj.alpha === 0) return null;
 
-    const world = TransformManager.multiply(
-      parentMatrix,
-      TransformManager.pixiToSkiaMatrix(obj.transform)
-    );
+    const world = TH.multiply(parentMatrix, TH.pixiToSkiaMatrix(obj.transform));
 
     if (obj instanceof PIXI.Container && (obj as any).interactiveChildren !== false) {
       for (let i = obj.children.length - 1; i >= 0; i--) {
@@ -228,7 +223,7 @@ export class InteractionManager {
     if (!PixiEventBridge.isInteractive(obj)) return null;
 
     if (obj.hitArea) {
-      const local = TransformManager.inverseTransformPoint(world, x, y);
+      const local = TH.inverseTransformPoint(world, x, y);
       if (obj.hitArea.contains(local.x, local.y)) return obj;
       return null;
     }

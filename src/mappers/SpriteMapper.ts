@@ -2,7 +2,7 @@
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TransformManager } from '../TransformManager';
+import { TH } from '../utils/transform-helpers';
 import { CK } from '../utils/ck-helpers';
 import { mapBlendMode } from '../utils/blend-modes';
 
@@ -27,7 +27,7 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     if (!img) return;
 
     ctx.canvas.save();
-    ctx.canvas.concat(TransformManager.pixiToSkiaMatrix(sprite.transform));
+    ctx.canvas.concat(TH.pixiToSkiaMatrix(sprite.transform));
     ctx.canvas.translate(-sprite.anchor.x * w, -sprite.anchor.y * h);
     
     // Isolate paint state
@@ -69,7 +69,7 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   hitTest(ctx: RenderContext, sprite: PIXI.Sprite, worldMatrix: Float32Array, x: number, y: number): boolean {
     if (sprite.worldAlpha <= 0) return false;
 
-    const local = TransformManager.inverseTransformPoint(worldMatrix, x, y);
+    const local = TH.inverseTransformPoint(worldMatrix, x, y);
     const bounds = sprite.getLocalBounds(SpriteMapper._tempRect);
     
     // Bounding Box Check

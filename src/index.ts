@@ -3,6 +3,6 @@ export type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './typ
 export { MapperRegistry } from './mappers';
 export type { SkiaMapper } from './mappers/SkiaMapper';
 export { ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
-export { TransformManager } from './TransformManager';
+export { TH } from './utils/transform-helpers';
 export { CK } from './utils/ck-helpers';
 export type { InteractionEvent } from './InteractionManager';

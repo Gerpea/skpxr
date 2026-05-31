@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path, ColorFilter } from 'canvaskit-wasm';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TransformManager } from '../TransformManager';
+import { TH } from '../utils/transform-helpers';
 import { CK } from '../utils/ck-helpers';
 import { mapBlendMode } from '../utils/blend-modes';
 import { PathBuilderUtil } from '../utils/path-builder';
@@ -22,7 +22,7 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
     if (!data.length) return;
 
     ctx.canvas.save();
-    ctx.canvas.concat(TransformManager.pixiToSkiaMatrix(graphics.transform));
+    ctx.canvas.concat(TH.pixiToSkiaMatrix(graphics.transform));
 
     // Isolate paint state to prevent bleeding to other objects
     const gfxPaint = ctx.paint.copy();
@@ -88,7 +88,7 @@ export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
     const data = (graphics as any).geometry?.graphicsData || (graphics as any)._graphicsData || [];
     if (!data.length) return false;
 
-    const local = TransformManager.inverseTransformPoint(worldMatrix, x, y);
+    const local = TH.inverseTransformPoint(worldMatrix, x, y);
 
     for (const item of data) {
       const path = PathBuilderUtil.build(item.shape, item.type, ctx.ck, item.holes);

@@ -1,6 +1,6 @@
 // src/skia-wrapper/PixiEventBridge.ts
 import * as PIXI from 'pixi.js-legacy';
-import { TransformManager } from './TransformManager';
+import { TH } from './utils/transform-helpers';
 
 export interface FederatedEventLike {
   type: string;
@@ -42,23 +42,23 @@ export class PixiEventBridge {
 
       // ✅ Dynamically calculates local coordinates relative to ANY display object
       getLocalPosition(displayObject: PIXI.DisplayObject, point?: PIXI.Point): PIXI.Point {
-        let matrix = TransformManager.identity();
+        let matrix = TH.identity();
         let current: PIXI.DisplayObject | null = displayObject;
         const stack: Float32Array[] = [];
 
         // Walk up the tree to collect all local transforms
         while (current) {
-          stack.push(TransformManager.pixiToSkiaMatrix(current.transform));
+          stack.push(TH.pixiToSkiaMatrix(current.transform));
           current = current.parent;
         }
 
         // Multiply from root down to build the full world matrix
         for (let i = stack.length - 1; i >= 0; i--) {
-          matrix = TransformManager.multiply(matrix, stack[i]);
+          matrix = TH.multiply(matrix, stack[i]);
         }
 
         // Inverse transform the global click coordinates
-        const local = TransformManager.inverseTransformPoint(matrix, global.x, global.y);
+        const local = TH.inverseTransformPoint(matrix, global.x, global.y);
         const out = point || new PIXI.Point();
         out.set(local.x, local.y);
         return out;

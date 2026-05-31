@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js-legacy';
 
-export class TransformManager {
+export class TH {
   private static readonly IDENTITY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
   static pixiToSkiaMatrix(pixiTransform: PIXI.Transform): Float32Array {
@@ -18,7 +18,6 @@ export class TransformManager {
     return out;
   }
 
-  // ✅ NEW: Matrix Inversion for relative coordinate mapping
   static invert(m: Float32Array): Float32Array | null {
     const a = m[0],
       c = m[1],
@@ -47,7 +46,6 @@ export class TransformManager {
     const det = a * d - b * c;
     if (Math.abs(det) < 1e-6) return { x, y };
     const inv = 1 / det;
-    // Correct inverse transformation: translate first, then apply inverse rotation/scale
     return {
       x: d * (x - tx) * inv + c * (y - ty) * inv,
       y: -b * (x - tx) * inv + a * (y - ty) * inv,

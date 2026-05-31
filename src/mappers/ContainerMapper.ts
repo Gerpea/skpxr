@@ -2,7 +2,7 @@
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaMapper } from './SkiaMapper';
 import type { RenderContext } from '../types';
-import { TransformManager } from '../TransformManager';
+import { TH } from '../utils/transform-helpers';
 import type { SkiaRenderer } from '../SkiaRenderer';
 
 export class ContainerMapper implements SkiaMapper<PIXI.Container> {
@@ -17,9 +17,9 @@ export class ContainerMapper implements SkiaMapper<PIXI.Container> {
     if ((container as any).sortDirty) container.sortChildren();
 
     ctx.canvas.save();
-    ctx.canvas.concat(TransformManager.pixiToSkiaMatrix(container.transform));
+    ctx.canvas.concat(TH.pixiToSkiaMatrix(container.transform));
     
-    const world = TransformManager.multiply(parentMatrix, TransformManager.pixiToSkiaMatrix(container.transform));
+    const world = TH.multiply(parentMatrix, TH.pixiToSkiaMatrix(container.transform));
     
     for (const child of container.children) {
       if (!child.visible || child.alpha <= 0) continue;
@@ -34,7 +34,7 @@ export class ContainerMapper implements SkiaMapper<PIXI.Container> {
 
   hitTest(ctx: RenderContext, container: PIXI.Container, worldMatrix: Float32Array, x: number, y: number): boolean {
     if ((container as any).sortDirty) container.sortChildren();
-    const world = TransformManager.multiply(worldMatrix, TransformManager.pixiToSkiaMatrix(container.transform));
+    const world = TH.multiply(worldMatrix, TH.pixiToSkiaMatrix(container.transform));
     for (let i = container.children.length - 1; i >= 0; i--) {
       const child = container.children[i];
       if (child.visible && child.alpha > 0 && this.renderer?.hitTestObject(ctx, child, world, x, y)) return true;
