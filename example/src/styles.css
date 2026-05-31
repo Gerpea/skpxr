@@ -283,19 +283,6 @@ body {
   background: var(--accent);
 }
 
-/* ───────── EDITOR HINT ───────── */
-.monaco-editor .editable-hint::before {
-  content: '💾 Ctrl+S • 📋 Copy • ↺ Reset';
-  position: absolute;
-  right: 12px;
-  top: 4px;
-  color: var(--accent);
-  font-size: 10px;
-  opacity: 0.7;
-  pointer-events: none;
-  font-family: var(--font-mono);
-}
-
 /* ───────── ERROR DISPLAY ───────── */
 .error-display {
   padding: 20px;

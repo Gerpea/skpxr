@@ -124,14 +124,14 @@ const App: React.FC = () => {
               <Preview 
                 example={selectedExample} 
                 editableCode={savedCode} 
-                label="Pixi Renderer"
+                label="Pixi"
                 renderer="pixi"
               />
               <div className="preview-divider" />
               <Preview 
                 example={selectedExample} 
                 editableCode={savedCode} 
-                label="Skia Renderer"
+                label="Skia"
                 renderer="skia"
               />
             </div>

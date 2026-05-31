@@ -17,17 +17,15 @@ export class ContainerMapper implements SkiaMapper<PIXI.Container> {
     if ((container as any).sortDirty) container.sortChildren();
 
     ctx.canvas.save();
+    // ✅ Apply THIS container's local transform to canvas state
     ctx.canvas.concat(TH.pixiToSkiaMatrix(container.transform));
-    
-    const world = TH.multiply(parentMatrix, TH.pixiToSkiaMatrix(container.transform));
-    
+
+    // ✅ For children, pass IDENTITY because canvas.concat already accumulated parent transform
+    // Children will apply THEIR OWN local transform via their own concat()
     for (const child of container.children) {
       if (!child.visible || child.alpha <= 0) continue;
-
-      // ✅ SKIP VISUAL RENDERING OF ACTIVE MASKS (Matches Pixi WebGL stencil-only behavior)
       if (ctx.activeMasks?.has(child)) continue;
-
-      this.renderer?.drawObject(ctx, child, world);
+      this.renderer?.drawObject(ctx, child, TH.identity());
     }
     ctx.canvas.restore();
   }

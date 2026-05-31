@@ -68,7 +68,7 @@ const Preview: React.FC<PreviewProps> = ({
             autoDensity: true,
             antialias: true,
           });
-
+          
           // ✅ Check if component is still mounted before DOM manipulation
           if (!isMounted || !containerRef.current) {
             app.destroy(true);
@@ -106,6 +106,7 @@ const Preview: React.FC<PreviewProps> = ({
             height: 600,
             backgroundColor: 0x1099bb,
             wasmBaseUrl: '/canvaskit/',
+            dpr: window.devicePixelRatio || 1,
           };
           
           const skia = new SkiaRenderer(skiaOptions);
@@ -124,10 +125,9 @@ const Preview: React.FC<PreviewProps> = ({
             if (!isMounted) return;
             const skia = skiaRendererRef.current;
             const container = containerRef.current;
-            if (skia?.view && container) {
+            if (skia?.resize && container) {
               const { clientWidth, clientHeight } = container;
-              skia.view.style.width = `${clientWidth}px`;
-              skia.view.style.height = `${clientHeight}px`;
+              skia.resize(clientWidth, clientHeight, window.devicePixelRatio || 1);
             }
           };
           
@@ -197,7 +197,7 @@ const Preview: React.FC<PreviewProps> = ({
             code={codeToRun}
             exampleId={`${example.id}-${renderer}`}
             scene={sceneRef.current || new Container()}
-            app={pixiAppRef.current}
+            app={renderer === 'pixi' ? pixiAppRef.current : skiaRendererRef.current}
             onError={handleError}
           />
         </ErrorBoundary>

@@ -1,4 +1,3 @@
-// src/skia-renderer.ts
 import CanvasKitInit from 'canvaskit-wasm';
 import type { CanvasKit, Canvas, Surface, Paint, Image } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
@@ -11,12 +10,10 @@ import { Masking } from './masking/masking';
 export class SkiaRenderer {
   private isGPU = false;
   public readonly view: HTMLCanvasElement;
-
   private ck: CanvasKit | null = null;
   private surface: Surface | null = null;
   private canvas: Canvas | null = null;
   private paint: Paint | null = null;
-
   private registry = new MapperRegistry();
   private imageCache = new Map<string, Image>();
   private alphaCache = new Map<string, Uint8Array>();
@@ -27,9 +24,8 @@ export class SkiaRenderer {
   private tickerBound = false;
 
   constructor(private options: SkiaRendererOptions) {
-    // ✅ Canvas Creation Support
     this.view = options.canvas || document.createElement('canvas');
-    this.options.canvas = this.view; // Normalize for internal use
+    this.options.canvas = this.view;
 
     const containerMapper = new ContainerMapper();
     containerMapper.setRenderer(this);
@@ -41,18 +37,20 @@ export class SkiaRenderer {
   get width(): number {
     return this.options.width ?? this.view.clientWidth ?? 800;
   }
+
   get height(): number {
     return this.options.height ?? this.view.clientHeight ?? 600;
   }
+
   get screen(): PIXI.Rectangle {
     return new PIXI.Rectangle(0, 0, this.width, this.height);
   }
 
   async init(): Promise<void> {
-    const { dpr = 1, wasmBaseUrl, locateFile, canvas: el, backend = 'webgl' } = this.options;
+    const { wasmBaseUrl, locateFile, canvas: el, backend = 'webgl' } = this.options;
     const loc =
       locateFile ||
-      (f => {
+      ((f: string) => {
         const base = wasmBaseUrl?.endsWith('/') ? wasmBaseUrl : `${wasmBaseUrl}/`;
         return base ? `${base}${f}` : `/canvaskit/${f}`;
       });
@@ -65,15 +63,9 @@ export class SkiaRenderer {
     this.resizeObserver = new ResizeObserver(() => this.updateCanvasSize());
     this.resizeObserver.observe(el!);
 
-    // ✅ GPU / CPU Backend Selection
+    // GPU / CPU Backend Selection
     if (backend === 'webgl') {
-      // Try to create a hardware-accelerated WebGL surface (Matches Pixi's default)
-      this.surface = this.ck.MakeWebGLCanvasSurface(el!, this.ck.ColorSpace.SRGB, {
-        // Optional: Pass specific WebGL context attributes if needed
-        // antialias: true,
-        // alpha: true
-      });
-
+      this.surface = this.ck.MakeWebGLCanvasSurface(el!, this.ck.ColorSpace.SRGB);
       if (this.surface) {
         this.isGPU = true;
         console.log('🚀 SkiaRenderer: Using WebGL (GPU) backend.');
@@ -82,7 +74,6 @@ export class SkiaRenderer {
       }
     }
 
-    // Fallback to CPU (Software) if WebGL failed or was explicitly requested
     if (!this.surface) {
       this.surface = this.ck.MakeSWCanvasSurface(el!);
       this.isGPU = false;
@@ -90,6 +81,10 @@ export class SkiaRenderer {
     }
 
     this.canvas = this.surface.getCanvas();
+
+    // ✅ Apply persistent DPR scale to initial surface
+    this.applyDprScale();
+
     this.paint = CK.makePaint(this.ck);
 
     this.interactionManager = new InteractionManager(
@@ -111,50 +106,101 @@ export class SkiaRenderer {
     if (this.options.scene) this.renderContainer(this.options.scene);
   };
 
+  /**
+   * ✅ Applies persistent DPR scale to current canvas.
+   * Must be called after EVERY surface creation/recreation.
+   * Do NOT wrap in save()/restore() — this is the base coordinate system.
+   */
+  private applyDprScale(): void {
+    if (!this.canvas) return;
+    const dpr = this.options.dpr ?? 1;
+    if (dpr !== 1) {
+      this.canvas.scale(dpr, dpr);
+    }
+  }
+
   private updateCanvasSize(): void {
     const { dpr = 1, canvas: el } = this.options;
-    if (!el) return;
+    if (!el || !this.ck) return;
 
     let width = this.options.width;
     let height = this.options.height;
 
-    // 1. If explicit width/height weren't provided, try to read from CSS/DOM
     if (width === undefined || height === undefined) {
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         width = width ?? rect.width;
         height = height ?? rect.height;
       } else {
-        // 2. Fallback to scene bounds or standard 800x600 default
-        width = width ?? (this.options.scene as any).width ?? 800;
-        height = height ?? (this.options.scene as any).height ?? 600;
+        width = width ?? 800;
+        height = height ?? 600;
       }
     }
 
-    // Save back to options so getters reflect the current size
+    const physW = Math.ceil(width * dpr);
+    const physH = Math.ceil(height * dpr);
+
+    // Only act if physical size actually changed
+    if (el.width === physW && el.height === physH) return;
+
+    // Store logical dimensions BEFORE destroying context
     this.options.width = width;
     this.options.height = height;
 
-    // Apply to canvas internal resolution and CSS size
-    el.width = Math.ceil(width * dpr);
-    el.height = Math.ceil(height * dpr);
+    // ⚠️ Setting width/height DESTROYS the WebGL context
+    el.width = physW;
+    el.height = physH;
     el.style.width = `${width}px`;
     el.style.height = `${height}px`;
+
+    // ✅ MUST recreate surface after context destruction
+    this.surface?.delete();
+    this.surface = null;
+    this.canvas = null;
+
+    if (this.isGPU) {
+      this.surface = this.ck.MakeWebGLCanvasSurface(el, this.ck.ColorSpace.SRGB);
+      if (!this.surface) {
+        console.warn('⚠️ WebGL surface recreation failed. Falling back to CPU.');
+        this.isGPU = false;
+        this.surface = this.ck.MakeSWCanvasSurface(el);
+      }
+    } else {
+      this.surface = this.ck.MakeSWCanvasSurface(el);
+    }
+
+    this.canvas = this.surface?.getCanvas() ?? null;
+
+    // ✅ Re-apply persistent DPR scale to NEW surface
+    this.applyDprScale();
+
+    // Recreate paint (old references may point to deleted GPU resources)
+    this.paint?.delete();
+    this.paint = this.canvas ? CK.makePaint(this.ck) : null;
   }
 
   public resize(width: number, height: number): void {
     this.options.width = width;
     this.options.height = height;
     this.updateCanvasSize();
-
-    // Re-render immediately to prevent flashing/stretching
-    if (this.options.scene) this.renderContainer(this.options.scene);
+    // ❌ DO NOT render here — surface was just recreated,
+    // ticker will render next frame with valid state
   }
 
   renderContainer(container: PIXI.Container): void {
-    if (!this.canvas || !this.ck || !this.paint) return;
+    // ✅ Guard against invalid state during resize transitions
+    if (!this.canvas || !this.ck || !this.paint || !this.surface) return;
 
-    // ✅ Collect all active masks
+    try {
+      container.updateTransform();
+    } catch {
+      try {
+        (container as any)._recursivePostUpdateTransform?.();
+      } catch {
+        (container.transform as any).updateLocalTransform?.();
+      }
+    }
+
     this.activeMasks.clear();
     this.masking?.collectMasks(container, this.activeMasks);
 
@@ -164,10 +210,9 @@ export class SkiaRenderer {
       paint: this.paint,
       imageCache: this.imageCache,
       alphaCache: this.alphaCache,
-      activeMasks: this.activeMasks, // ✅ Pass to context
+      activeMasks: this.activeMasks,
     };
 
-    // ✅ Background Color Clearing
     const bgColor = this.options.backgroundColor;
     if (bgColor !== undefined && bgColor !== null) {
       this.canvas.clear(CK.parseColor(this.ck, bgColor, 1));
@@ -175,21 +220,20 @@ export class SkiaRenderer {
       this.canvas.clear(this.ck.Color4f(0, 0, 0, 0));
     }
 
+    // ✅ NO per-frame DPR scale here — persistent scale from applyDprScale() handles it
     this.drawObject(ctx, container, TH.identity());
-    this.surface?.flush();
+    this.surface.flush();
   }
 
   drawObject(ctx: RenderContext, obj: PIXI.DisplayObject, worldMatrix: Float32Array): void {
     if (!obj.visible || obj.alpha === 0) return;
 
     const mask = (obj as any).mask;
-
     if (mask) {
-      this.masking.applyMaskedDraw(ctx, obj, mask, worldMatrix);
+      this.masking!.applyMaskedDraw(ctx, obj, mask, worldMatrix);
       return;
     }
 
-    // ✅ No mask: draw normally
     this.registry.getMapper(obj)?.draw(ctx, obj as any, worldMatrix);
   }
 
@@ -206,6 +250,7 @@ export class SkiaRenderer {
   on(event: string, cb: (e: InteractionEvent) => void): void {
     this.interactionManager?.on(event, cb);
   }
+
   off(event: string, cb: (e: InteractionEvent) => void): void {
     this.interactionManager?.off(event, cb);
   }
@@ -228,6 +273,7 @@ export class SkiaRenderer {
 
       const pdfPaint = CK.makePaint(this.ck);
       pdfPaint.setAntiAlias(true);
+
       const ctx: RenderContext = {
         ck: this.ck,
         canvas: pdfCanvas,
@@ -235,6 +281,17 @@ export class SkiaRenderer {
         imageCache: this.imageCache,
         alphaCache: this.alphaCache,
       };
+
+      // ✅ Force transform update for PDF export too
+      try {
+        this.options.scene.updateTransform();
+      } catch {
+        try {
+          (this.options.scene as any)._recursivePostUpdateTransform?.();
+        } catch {
+          (this.options.scene.transform as any).updateLocalTransform?.();
+        }
+      }
 
       this.drawObject(ctx, this.options.scene, TH.identity());
       doc.endPage();
@@ -260,11 +317,9 @@ export class SkiaRenderer {
   destroy(): void {
     if (this.tickerBound) PIXI.Ticker.shared.remove(this.onTick);
     this.resizeObserver?.disconnect();
-
     this.imageCache.forEach(img => img.delete?.());
     this.imageCache.clear();
     this.alphaCache.clear();
-
     this.paint?.delete();
     this.surface?.flush();
     this.surface?.delete();
