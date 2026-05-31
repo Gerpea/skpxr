@@ -1,6 +1,6 @@
 // src/interaction/PixiEventBridge.ts
 import * as PIXI from 'pixi.js-legacy';
-import { TH } from './utils';
+import { TH } from '../utils';
 
 export interface FederatedEventLike {
   type: string;
