@@ -1,6 +1,6 @@
 // src/skia-wrapper/mappers/SpriteMapper.ts
 import * as PIXI from 'pixi.js-legacy';
-import type { SkiaMapper } from './SkiaMapper';
+import type { SkiaMapper } from './skia-mapper';
 import type { RenderContext } from '../types';
 import { TH, CK, mapBlendMode } from '../utils';
 

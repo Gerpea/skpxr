@@ -1,7 +1,7 @@
 // src/skia-wrapper/mappers/GraphicsMapper.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path, ColorFilter } from 'canvaskit-wasm';
-import type { SkiaMapper } from './SkiaMapper';
+import type { SkiaMapper } from './skia-mapper';
 import type { RenderContext } from '../types';
 import { TH, CK, mapBlendMode, PathBuilderUtil } from '../utils';
 

@@ -1,2 +1,2 @@
-export { InteractionManager } from './InteractionManager';
-export { PixiEventBridge } from './PixiEventBridge';
+export { InteractionManager } from './interaction-manager';
+export { PixiEventBridge } from './pixi-event-bridge';

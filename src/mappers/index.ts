@@ -1,10 +1,10 @@
 import * as PIXI from 'pixi.js-legacy';
-export type { SkiaMapper } from './SkiaMapper';
-export { ContainerMapper } from './ContainerMapper';
-export { GraphicsMapper } from './GraphicsMapper';
-export { SpriteMapper } from './SpriteMapper';
+export type { SkiaMapper } from './skia-mapper';
+export { ContainerMapper } from './container-mapper';
+export { GraphicsMapper } from './graphics-mapper';
+export { SpriteMapper } from './sprite-mapper';
 
-import type { SkiaMapper } from './SkiaMapper';
+import type { SkiaMapper } from './skia-mapper';
 
 export class MapperRegistry {
   private mappers: { instance: SkiaMapper; priority: number }[] = [];

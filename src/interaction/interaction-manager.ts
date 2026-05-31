@@ -1,10 +1,10 @@
-// src/skia-wrapper/InteractionManager.ts
+// src/interaction/InteractionManager.ts
 import * as PIXI from 'pixi.js-legacy';
 import type { CanvasKit, Path } from 'canvaskit-wasm';
-import type { RenderContext } from './types';
-import { MapperRegistry } from './mappers';
-import { TH } from './utils';
-import { PixiEventBridge } from './PixiEventBridge';
+import type { RenderContext } from '../types';
+import { MapperRegistry } from '../mappers';
+import { TH } from '../utils';
+import { PixiEventBridge } from './pixi-event-bridge';
 
 export interface InteractionEvent {
   type: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointerover' | 'pointerout';

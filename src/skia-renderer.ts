@@ -5,7 +5,7 @@ import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
 import { TH, CK, PathBuilderUtil } from './utils';
 import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
-import { InteractionManager, type InteractionEvent } from './interaction/InteractionManager';
+import { InteractionManager, type InteractionEvent } from './interaction/interaction-manager';
 
 export class SkiaRenderer {
   private isGPU = false;

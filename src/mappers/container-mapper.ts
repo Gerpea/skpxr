@@ -1,9 +1,9 @@
 // src/skia-wrapper/mappers/ContainerMapper.ts
 import * as PIXI from 'pixi.js-legacy';
-import type { SkiaMapper } from './SkiaMapper';
+import type { SkiaMapper } from './skia-mapper';
 import type { RenderContext } from '../types';
 import { TH } from '../utils';
-import type { SkiaRenderer } from '../SkiaRenderer';
+import type { SkiaRenderer } from '../skia-renderer';
 
 export class ContainerMapper implements SkiaMapper<PIXI.Container> {
   priority = 10;
