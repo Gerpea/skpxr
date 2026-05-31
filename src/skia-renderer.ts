@@ -1,11 +1,12 @@
-// src/skia-wrapper/SkiaRenderer.ts
+// src/skia-renderer.ts
 import CanvasKitInit from 'canvaskit-wasm';
-import type { CanvasKit, Canvas, Surface, Paint, Image, Path } from 'canvaskit-wasm';
+import type { CanvasKit, Canvas, Surface, Paint, Image } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
-import { TH, CK, PathBuilderUtil } from './utils';
+import { TH, CK } from './utils';
 import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
 import { InteractionManager, type InteractionEvent } from './interaction/interaction-manager';
+import { Masking } from './masking/masking';
 
 export class SkiaRenderer {
   private isGPU = false;
@@ -20,6 +21,7 @@ export class SkiaRenderer {
   private imageCache = new Map<string, Image>();
   private alphaCache = new Map<string, Uint8Array>();
   private activeMasks = new Set<PIXI.DisplayObject>();
+  private masking: Masking | null = null;
   private interactionManager: InteractionManager | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private tickerBound = false;
@@ -58,6 +60,8 @@ export class SkiaRenderer {
     this.ck = await CanvasKitInit({ locateFile: loc });
     this.updateCanvasSize();
 
+    this.masking = new Masking(this.ck, this.registry);
+
     this.resizeObserver = new ResizeObserver(() => this.updateCanvasSize());
     this.resizeObserver.observe(el!);
 
@@ -92,8 +96,7 @@ export class SkiaRenderer {
       el!,
       this.ck,
       this.registry,
-      () => this.options.scene,
-      this.alphaCache
+      () => this.options.scene
     );
 
     PIXI.Ticker.shared.add(this.onTick);
@@ -148,20 +151,12 @@ export class SkiaRenderer {
     if (this.options.scene) this.renderContainer(this.options.scene);
   }
 
-  private collectMasks(obj: PIXI.DisplayObject): void {
-    const mask = (obj as any).mask;
-    if (mask) this.activeMasks.add(mask);
-    if (obj instanceof PIXI.Container) {
-      for (const child of obj.children) this.collectMasks(child);
-    }
-  }
-
   renderContainer(container: PIXI.Container): void {
     if (!this.canvas || !this.ck || !this.paint) return;
 
     // ✅ Collect all active masks
     this.activeMasks.clear();
-    this.collectMasks(container);
+    this.masking?.collectMasks(container, this.activeMasks);
 
     const ctx: RenderContext = {
       ck: this.ck,
@@ -190,89 +185,12 @@ export class SkiaRenderer {
     const mask = (obj as any).mask;
 
     if (mask) {
-      const isVectorMask = mask instanceof PIXI.Graphics && !(mask as any).isSpriteMask;
-
-      if (isVectorMask) {
-        // Build path in mask's LOCAL coordinates
-        const localPath = this.buildMaskPathLocal(ctx, mask);
-        if (localPath) {
-          ctx.canvas?.save();
-
-          // Calculate transform: mask-local → canvas-world space
-          const maskWorld = TH.pixiToSkiaMatrix(mask.transform.worldTransform);
-          const worldInv = TH.invert(worldMatrix);
-
-          if (worldInv) {
-            const relMatrix = TH.multiply(maskWorld, worldInv);
-
-            // ✅ Apply transform by rebuilding path with matrix
-            const builder = new ctx.ck!.PathBuilder();
-            builder.addPath(localPath, Array.from(relMatrix));
-            const transformedPath = builder.detach();
-            builder.delete();
-
-            // Clip with transformed path
-            ctx.canvas!.clipPath(transformedPath, ctx.ck!.ClipOp.Intersect, true);
-            transformedPath.delete();
-          } else {
-            // Fallback: clip in local space (may be offset if transforms fail)
-            ctx.canvas!.clipPath(localPath, ctx.ck!.ClipOp.Intersect, true);
-          }
-
-          localPath.delete();
-
-          // Draw object with clip applied
-          this.registry.getMapper(obj)?.draw(ctx, obj as any, worldMatrix);
-
-          ctx.canvas!.restore();
-          return;
-        }
-      } else {
-        // ✅ ALPHA MASK: saveLayer + DstIn (unchanged)
-        const objLayerPaint = new ctx.ck.Paint();
-        ctx.canvas?.saveLayer(objLayerPaint, null);
-
-        this.registry.getMapper(obj)?.draw(ctx, obj as any, worldMatrix);
-
-        const maskLayerPaint = new ctx.ck.Paint();
-        maskLayerPaint.setBlendMode(ctx.ck.BlendMode.DstIn);
-        ctx.canvas?.saveLayer(maskLayerPaint, null);
-
-        const maskMapper = this.registry.getMapper(mask);
-        if (maskMapper) {
-          const maskWorldMatrix = TH.pixiToSkiaMatrix(mask.transform.worldTransform);
-          maskMapper.draw(ctx, mask, maskWorldMatrix);
-        }
-
-        ctx.canvas?.restore();
-        ctx.canvas?.restore();
-
-        objLayerPaint.delete();
-        maskLayerPaint.delete();
-        return;
-      }
+      this.masking.applyMaskedDraw(ctx, obj, mask, worldMatrix);
+      return;
     }
 
     // ✅ No mask: draw normally
     this.registry.getMapper(obj)?.draw(ctx, obj as any, worldMatrix);
-  }
-  private buildMaskPathLocal(ctx: RenderContext, mask: PIXI.Graphics): Path | null {
-    const data = (mask as any).geometry?.graphicsData || [];
-    if (!data.length) return null;
-
-    const builder = new ctx.ck.PathBuilder();
-    try {
-      for (const item of data) {
-        const shapePath = PathBuilderUtil.build(item.shape, item.type, ctx.ck, item.holes);
-        if (shapePath) {
-          builder.addPath(shapePath);
-          shapePath.delete();
-        }
-      }
-      return builder.detach();
-    } finally {
-      builder.delete();
-    }
   }
 
   hitTestObject(
