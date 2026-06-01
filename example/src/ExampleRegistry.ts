@@ -31,30 +31,124 @@ export const BASIC_APP_SOURCE = `function setupScene(scene, app) {
 export const SHAPES_DEMO_SOURCE = `function setupScene(scene, app) {
   const { Graphics } = PIXI;
   
-  const graphics = new Graphics();
-  
-  graphics.beginFill(0xff0000, 0.8);
-  graphics.drawCircle(0, 0, 100);
-  graphics.endFill();
-  
-  graphics.lineStyle(4, 0xffffff, 1);
-  graphics.drawCircle(0, 0, 100);
-  
   const centerX = app.screen.width / 2;
   const centerY = app.screen.height / 2;
   
-  graphics.x = centerX;
-  graphics.y = centerY;
+  // ───────── SHAPE 1: Rotating & Scaling Square ─────────
+  const square = new Graphics();
+  square.beginFill(0xff6b6b, 0.9);
+  square.drawRect(-40, -40, 80, 80);
+  square.endFill();
+  square.lineStyle(3, 0xffffff, 1);
+  square.drawRect(-40, -40, 80, 80);
+  square.x = centerX - 150;
+  square.y = centerY;
+  scene.addChild(square);
   
-  scene.addChild(graphics);
-
-  let angle = 0;
+  // ───────── SHAPE 2: Orbiting & Rotating Ellipse ─────────
+  const ellipse = new Graphics();
+  ellipse.beginFill(0x4ecdc4, 0.85);
+  ellipse.drawEllipse(0, 0, 60, 40);
+  ellipse.endFill();
+  ellipse.lineStyle(2, 0xffffff, 1);
+  ellipse.drawEllipse(0, 0, 60, 40);
+  ellipse.x = centerX;
+  ellipse.y = centerY - 120;
+  scene.addChild(ellipse);
+  
+  // ───────── SHAPE 3: Bouncing & Skewing Triangle ─────────
+  const triangle = new Graphics();
+  triangle.beginFill(0x45b7d1, 0.9);
+  triangle.moveTo(0, -50);
+  triangle.lineTo(43, 25);
+  triangle.lineTo(-43, 25);
+  triangle.lineTo(0, -50);
+  triangle.endFill();
+  triangle.lineStyle(3, 0xffffff, 1);
+  triangle.moveTo(0, -50);
+  triangle.lineTo(43, 25);
+  triangle.lineTo(-43, 25);
+  triangle.lineTo(0, -50);
+  triangle.x = centerX + 150;
+  triangle.y = centerY;
+  scene.addChild(triangle);
+  
+  // ───────── SHAPE 4: Pulsing Rounded Rect ─────────
+  const rounded = new Graphics();
+  rounded.beginFill(0xf9ca24, 0.8);
+  rounded.drawRoundedRect(-35, -35, 70, 70, 15);
+  rounded.endFill();
+  rounded.lineStyle(2, 0xffffff, 1);
+  rounded.drawRoundedRect(-35, -35, 70, 70, 15);
+  rounded.x = centerX;
+  rounded.y = centerY + 120;
+  scene.addChild(rounded);
+  
+  // ───────── SHAPE 5: Spiraling Polygon ─────────
+  const polygon = new Graphics();
+  polygon.beginFill(0xa29bfe, 0.85);
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const x = Math.cos(angle) * 35;
+    const y = Math.sin(angle) * 35;
+    if (i === 0) polygon.moveTo(x, y);
+    else polygon.lineTo(x, y);
+  }
+  polygon.lineTo(35 * Math.cos(0), 35 * Math.sin(0));
+  polygon.endFill();
+  polygon.lineStyle(2, 0xffffff, 1);
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const x = Math.cos(angle) * 35;
+    const y = Math.sin(angle) * 35;
+    if (i === 0) polygon.moveTo(x, y);
+    else polygon.lineTo(x, y);
+  }
+  polygon.lineTo(35 * Math.cos(0), 35 * Math.sin(0));
+  polygon.x = centerX - 100;
+  polygon.y = centerY - 100;
+  scene.addChild(polygon);
+  
+  // ───────── ANIMATION STATE ─────────
+  let time = 0;
+  
   const animate = () => {
-    angle += 0.02;
-    graphics.x = centerX + Math.cos(angle) * 150;
-    graphics.y = centerY + Math.sin(angle) * 150;
+    time += 0.016; // ~60fps delta
+    
+    // Square: rotate + pulse scale
+    square.rotation = time * 1.5;
+    const squareScale = 0.8 + Math.sin(time * 2) * 0.2;
+    square.scale.set(squareScale);
+    
+    // Ellipse: orbit + rotate + subtle skew
+    ellipse.x = centerX + Math.cos(time * 0.8) * 150;
+    ellipse.y = centerY + Math.sin(time * 0.8) * 150;
+    ellipse.rotation = time * 2;
+    ellipse.skew.x = Math.sin(time * 1.5) * 0.1;
+    ellipse.skew.y = Math.cos(time * 1.2) * 0.05;
+    
+    // Triangle: bounce + skew + scale
+    triangle.y = centerY + Math.sin(time * 3) * 40;
+    triangle.rotation = Math.sin(time * 1.8) * 0.3;
+    triangle.skew.x = Math.sin(time * 2.5) * 0.15;
+    const triScale = 0.9 + Math.sin(time * 4) * 0.1;
+    triangle.scale.set(triScale);
+    
+    // Rounded Rect: pulse scale + rotate
+    rounded.rotation = -time * 0.8;
+    const roundScale = 0.85 + Math.sin(time * 3.5) * 0.15;
+    rounded.scale.set(roundScale);
+    
+    // Polygon: spiral orbit + rotate + scale
+    polygon.x = centerX + Math.cos(time * 0.5) * 100 * Math.sin(time * 0.3);
+    polygon.y = centerY + Math.sin(time * 0.5) * 100 * Math.cos(time * 0.3);
+    polygon.rotation = time * 2.5;
+    const polyScale = 0.7 + Math.sin(time * 1.8) * 0.3;
+    polygon.scale.set(polyScale);
+    
     requestAnimationFrame(animate);
   };
+  
   animate();
 }`;
 
@@ -280,23 +374,102 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
   }
 }`;
 
+export const BUNNIES_DEMO_SOURCE = `function setupScene(scene, app) {
+  const { Sprite, BLEND_MODES, Rectangle, Texture } = PIXI;
+  
+  // Create background sprite
+  const background = Sprite.from('https://pixijs.com/assets/bg_rotate.jpg');
+  background.width = app.screen.width;
+  background.height = app.screen.height;
+  scene.addChild(background);
+  
+  // Store dudes in an array for animation
+  const dudeArray = [];
+  const totalDudes = 20;
+  
+  // ✅ Pre-load texture to avoid repeated fetches
+  const flowerTexture = Sprite.from('https://pixijs.com/assets/flowerTop.png').texture;
+  
+  for (let i = 0; i < totalDudes; i++) {
+    const dude = new Sprite(flowerTexture);
+    dude.anchor.set(0.5);
+    
+    // Random scale between 0.8 and 1.1
+    dude.scale.set(0.8 + Math.random() * 0.3);
+    
+    // Random starting position within screen bounds
+    dude.x = Math.random() * app.screen.width;
+    dude.y = Math.random() * app.screen.height;
+    
+    // Additive blending 
+    dude.blendMode = BLEND_MODES.ADD;
+    
+    // Movement properties
+    dude.direction = Math.random() * Math.PI * 2;
+    dude.turningSpeed = (Math.random() - 0.5) * 0.02;
+    dude.speed = 2 + Math.random() * 2;
+    
+    dudeArray.push(dude);
+    scene.addChild(dude);
+  }
+  
+  // Bounds for wrapping (with padding for smooth transitions)
+  const dudeBoundsPadding = 100;
+  const dudeBounds = new Rectangle(
+    -dudeBoundsPadding,
+    -dudeBoundsPadding,
+    app.screen.width + dudeBoundsPadding * 2,
+    app.screen.height + dudeBoundsPadding * 2,
+  );
+  
+  const animate = () => {
+    for (let i = 0; i < dudeArray.length; i++) {
+      const dude = dudeArray[i];
+      
+      // Update direction and position
+      dude.direction += dude.turningSpeed;
+      dude.x += Math.sin(dude.direction) * dude.speed;
+      dude.y += Math.cos(dude.direction) * dude.speed;
+      
+      // Rotate sprite to face direction of travel
+      dude.rotation = -dude.direction - Math.PI / 2;
+      
+      // Wrap around screen bounds
+      if (dude.x < dudeBounds.x) {
+        dude.x += dudeBounds.width;
+      } else if (dude.x > dudeBounds.x + dudeBounds.width) {
+        dude.x -= dudeBounds.width;
+      }
+      if (dude.y < dudeBounds.y) {
+        dude.y += dudeBounds.height;
+      } else if (dude.y > dudeBounds.y + dudeBounds.height) {
+        dude.y -= dudeBounds.height;
+      }
+    }
+    
+    requestAnimationFrame(animate);
+  };
+  
+  animate();
+}`;
+
 export const examples: Example[] = [
   {
-    id: 'basic-app',
-    title: 'Basic App',
-    description: 'Centered text with drop shadow',
-    source: BASIC_APP_SOURCE
+    id: 'interactive-ui',
+    title: 'Interactive Canvas UI',
+    description: 'Dynamic in-canvas buttons, draggable sprites',
+    source: INTERACTIVE_UI_SOURCE
   },
   {
-    id: 'shapes-demo',
-    title: 'Shapes Demo',
-    description: 'Animated circle with legacy Graphics API',
+    id: 'shapes-animated',
+    title: 'Kinetic Shapes',
+    description: 'Orbiting, rotating, scaling shapes with skew',
     source: SHAPES_DEMO_SOURCE
   },
   {
-    id: 'interactive-ui',
-    title: 'Interactive UI',
-    description: 'In-canvas buttons and dynamic content',
-    source: INTERACTIVE_UI_SOURCE
+    id: 'blend-modes',
+    title: 'Additive Glow Particles',
+    description: 'Luminous sprites with additive blending effects',
+    source: BUNNIES_DEMO_SOURCE
   }
 ];
