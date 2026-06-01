@@ -1,6 +1,6 @@
 {
   "name": "skpxr",
-  "version": "0.1.0-alpha.1",
+  "version": "1.0.0",
   "description": "High-performance Skia/CanvasKit renderer for PixiJS v7 with vector text, interaction, and PDF export",
   "author": "Gerpea <german.tcyganov@gmail.com>",
   "license": "MIT",
