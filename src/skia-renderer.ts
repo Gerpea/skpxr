@@ -3,7 +3,13 @@ import type { CanvasKit, Canvas, Surface, Paint, Image } from 'canvaskit-wasm';
 import * as PIXI from 'pixi.js-legacy';
 import type { SkiaRendererOptions, RenderContext, PdfExportOptions } from './types';
 import { TH, CK } from './utils';
-import { MapperRegistry, ContainerMapper, GraphicsMapper, SpriteMapper } from './mappers';
+import {
+  MapperRegistry,
+  ContainerMapper,
+  GraphicsMapper,
+  SpriteMapper,
+  TextMapper,
+} from './mappers';
 import { InteractionManager, type InteractionEvent } from './interaction/interaction-manager';
 import { Masking } from './masking/masking';
 
@@ -31,6 +37,7 @@ export class SkiaRenderer {
     this.registry.register(containerMapper);
     this.registry.register(new GraphicsMapper());
     this.registry.register(new SpriteMapper());
+    this.registry.register(new TextMapper());
   }
 
   get width(): number {
@@ -315,6 +322,10 @@ export class SkiaRenderer {
     this.paint?.delete();
     this.surface?.flush();
     this.surface?.delete();
+    const textMapper = this.registry.getMapper(new PIXI.Text()) as any;
+    if (textMapper && textMapper.destroy) {
+      textMapper.destroy();
+    }
     this.interactionManager?.destroy();
     this.ck = null;
   }

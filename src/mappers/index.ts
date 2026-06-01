@@ -3,6 +3,7 @@ export type { SkiaMapper } from './skia-mapper';
 export { ContainerMapper } from './container-mapper';
 export { GraphicsMapper } from './graphics-mapper';
 export { SpriteMapper } from './sprite-mapper';
+export { TextMapper } from './text-mapper'; 
 
 import type { SkiaMapper } from './skia-mapper';
 
