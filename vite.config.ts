@@ -31,7 +31,8 @@ export default defineConfig({
     },
 
     rollupOptions: {
-      external: ['pixi.js-legacy', 'canvaskit-wasm'],
+      external: ['pixi.js', 'pixi.js-legacy', /^@pixi\/.*/, 'canvaskit-wasm'],
+      // external: ['pixi.js-legacy', 'canvaskit-wasm'],
       output: {
         globals: {
           'pixi.js-legacy': 'PIXI',
@@ -61,7 +62,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       // Only alias for local dev/example usage. 
       // In production builds via CDN, this is ignored because 'canvaskit-wasm' is external.
-      'canvaskit-wasm': path.resolve(__dirname, 'vendor/canvaskit-wasm/index.js')
+      'canvaskit-wasm': path.resolve(__dirname, 'vendor/canvaskit-wasm/canvaskit.js')
     }
   },
 

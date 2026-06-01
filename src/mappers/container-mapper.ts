@@ -13,7 +13,7 @@ export class ContainerMapper implements SkiaMapper<PIXI.Container> {
         this.renderer = r;
     }
 
-    canHandle(obj: PIXI.DisplayObject): obj is PIXI.Container {
+    canHandle(obj: PIXI.DisplayObject): boolean {
         return obj instanceof PIXI.Container;
     }
 

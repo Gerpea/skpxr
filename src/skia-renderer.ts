@@ -12,6 +12,7 @@ import {
 } from './mappers';
 import { InteractionManager, type InteractionEvent } from './interaction/interaction-manager';
 import { Masking } from './masking/masking';
+import { getCanvasKit } from './utils/canvaskit-singleton';
 
 export class SkiaRenderer {
   private isGPU = false;
@@ -61,8 +62,13 @@ export class SkiaRenderer {
         return base ? `${base}${f}` : `/canvaskit/${f}`;
       });
 
-    this.ck = await CanvasKitInit({ locateFile: loc });
-
+    this.ck = await getCanvasKit({
+      wasmBaseUrl: this.options.wasmBaseUrl,
+      locateFile: loc,
+    });
+    if (!el || (el && (el.clientWidth === 0 || el.clientHeight === 0))) {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
     // Initial setup
     this.updateCanvasSize();
     this.applyDprScale(); // Apply scale after initial surface creation
@@ -314,19 +320,40 @@ export class SkiaRenderer {
   }
 
   destroy(): void {
-    if (this.tickerBound) PIXI.Ticker.shared.remove(this.onTick);
+    // 1. Remove from Pixi Ticker
+    if (this.tickerBound) {
+      PIXI.Ticker.shared.remove(this.onTick);
+      this.tickerBound = false;
+    }
+
+    // 2. Stop observing resizes
     this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+
+    // 3. Clear WASM caches
     this.imageCache.forEach(img => img.delete?.());
     this.imageCache.clear();
     this.alphaCache.clear();
+
+    // 4. Delete WASM objects
     this.paint?.delete();
     this.surface?.flush();
     this.surface?.delete();
+
+    // 5. Clean up mappers & interaction
     const textMapper = this.registry.getMapper(new PIXI.Text()) as any;
-    if (textMapper && textMapper.destroy) {
-      textMapper.destroy();
-    }
+    textMapper?.destroy?.();
     this.interactionManager?.destroy();
+
+    // 6. ✅ DOM Cleanup: Remove canvas from document to prevent orphaned nodes
+    if (this.view && this.view.parentNode) {
+      this.view.parentNode.removeChild(this.view);
+    }
+
+    // 7. Nullify internal references (prevents memory leaks & dangling pointers)
+    this.canvas = null;
+    this.surface = null;
+    this.paint = null;
     this.ck = null;
   }
 }

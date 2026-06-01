@@ -13,9 +13,8 @@ export default defineConfig({
 
   plugins: [
     react({
-      jsxRuntime: 'automatic', // ✅ Explicit, though default
-    })
-    // ❌ Removed: dts() and commonjs() - not needed for app builds
+      jsxRuntime: 'automatic',
+    }),
   ],
 
   resolve: {
@@ -23,7 +22,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       'skpxr': path.resolve(__dirname, '../src/index.ts'),
       'canvaskit-wasm': path.resolve(__dirname, '../vendor/canvaskit-wasm/index.js')
-    }
+    },
+    dedupe: [
+      'pixi.js',
+      'pixi.js-legacy',
+      '@pixi/core',
+      '@pixi/display',
+      '@pixi/graphics',
+      '@pixi/text'
+    ],
   },
 
   server: {
@@ -35,11 +42,10 @@ export default defineConfig({
         path.resolve(__dirname, '..'),
         path.resolve(__dirname, '../vendor')
       ],
-    }
+    },
   },
 
   optimizeDeps: {
-    // ✅ Pre-bundle React runtime to avoid JSX resolution issues
     include: ['react', 'react-dom', 'react/jsx-runtime'],
     exclude: ['skpxr', 'canvaskit-wasm']
   },

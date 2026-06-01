@@ -8,7 +8,7 @@ import { TH, CK, mapBlendMode, PathBuilderUtil } from '../utils';
 export class GraphicsMapper implements SkiaMapper<PIXI.Graphics> {
   priority = 20;
 
-  canHandle(obj: PIXI.DisplayObject): obj is PIXI.Graphics {
+  canHandle(obj: PIXI.DisplayObject): boolean {
     return obj instanceof PIXI.Graphics;
   }
 

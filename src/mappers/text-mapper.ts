@@ -11,7 +11,7 @@ export class TextMapper implements SkiaMapper<PIXI.Text> {
     // Cache fonts by size to avoid recreating WASM objects every frame
     private fontCache = new Map<string, { font: Font; typeface: Typeface }>();
 
-    canHandle(obj: PIXI.DisplayObject): obj is PIXI.Text {
+    canHandle(obj: PIXI.DisplayObject): boolean {
         return obj instanceof PIXI.Text;
     }
 

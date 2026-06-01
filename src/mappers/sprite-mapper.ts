@@ -8,7 +8,9 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   priority = 20;
   private static _tempRect = new PIXI.Rectangle();
 
-  canHandle(obj: PIXI.DisplayObject): obj is PIXI.Sprite { return obj instanceof PIXI.Sprite; }
+  canHandle(obj: PIXI.DisplayObject): boolean {
+    return obj instanceof PIXI.Sprite;
+  }
 
   draw(ctx: RenderContext, sprite: PIXI.Sprite, worldMatrix: Float32Array): void {
     if (!ctx.canvas || !ctx.paint) return;
@@ -27,7 +29,7 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
     ctx.canvas.save();
     ctx.canvas.concat(TH.pixiToSkiaMatrix(sprite.transform));
     ctx.canvas.translate(-sprite.anchor.x * w, -sprite.anchor.y * h);
-    
+
     // Isolate paint state
     const spritePaint = ctx.paint.copy();
     let colorFilter: any = null;
@@ -69,30 +71,30 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
 
     const local = TH.inverseTransformPoint(worldMatrix, x, y);
     const bounds = sprite.getLocalBounds(SpriteMapper._tempRect);
-    
+
     // Bounding Box Check
-    if (local.x < bounds.x || local.x > bounds.x + bounds.width || 
-        local.y < bounds.y || local.y > bounds.y + bounds.height) {
-        return false;
+    if (local.x < bounds.x || local.x > bounds.x + bounds.width ||
+      local.y < bounds.y || local.y > bounds.y + bounds.height) {
+      return false;
     }
 
     // Pixel-Perfect Alpha Check
     const tex = sprite.texture;
     const key = `sk_${tex.baseTexture.uid}`;
     const alphaMap = ctx.alphaCache?.get(key);
-    
+
     if (alphaMap) {
-        const baseW = tex.baseTexture.realWidth;
-        const baseH = tex.baseTexture.realHeight;
-        
-        // Map local coords to base texture coords (handles trims/frames)
-        const u = Math.floor(local.x - bounds.x + (tex.frame?.x || 0));
-        const v = Math.floor(local.y - bounds.y + (tex.frame?.y || 0));
-        
-        if (u >= 0 && u < baseW && v >= 0 && v < baseH) {
-            return alphaMap[v * baseW + u] > 10; // Threshold
-        }
-        return false;
+      const baseW = tex.baseTexture.realWidth;
+      const baseH = tex.baseTexture.realHeight;
+
+      // Map local coords to base texture coords (handles trims/frames)
+      const u = Math.floor(local.x - bounds.x + (tex.frame?.x || 0));
+      const v = Math.floor(local.y - bounds.y + (tex.frame?.y || 0));
+
+      if (u >= 0 && u < baseW && v >= 0 && v < baseH) {
+        return alphaMap[v * baseW + u] > 10; // Threshold
+      }
+      return false;
     }
 
     return true; // Fallback to bounding box
@@ -101,26 +103,26 @@ export class SpriteMapper implements SkiaMapper<PIXI.Sprite> {
   private async loadImage(ck: any, base: PIXI.BaseTexture, alphaCache: Map<string, Uint8Array>): Promise<any | null> {
     const src = base.resource?.source;
     if (!src || !(src instanceof HTMLImageElement || src instanceof HTMLCanvasElement || src instanceof HTMLVideoElement)) return null;
-    
+
     const key = `sk_${base.uid}`;
-    
+
     // Extract Alpha Map for hit testing
     if (!alphaCache.has(key)) {
-        try {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = base.realWidth;
-            tempCanvas.height = base.realHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            if (tempCtx) {
-                tempCtx.drawImage(src, 0, 0, base.realWidth, base.realHeight);
-                const imageData = tempCtx.getImageData(0, 0, base.realWidth, base.realHeight);
-                const alpha = new Uint8Array(base.realWidth * base.realHeight);
-                for (let i = 0; i < alpha.length; i++) alpha[i] = imageData.data[i * 4 + 3];
-                alphaCache.set(key, alpha);
-            }
-        } catch (e) {
-            console.warn('⚠️ Alpha map extraction failed.', e);
+      try {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = base.realWidth;
+        tempCanvas.height = base.realHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (tempCtx) {
+          tempCtx.drawImage(src, 0, 0, base.realWidth, base.realHeight);
+          const imageData = tempCtx.getImageData(0, 0, base.realWidth, base.realHeight);
+          const alpha = new Uint8Array(base.realWidth * base.realHeight);
+          for (let i = 0; i < alpha.length; i++) alpha[i] = imageData.data[i * 4 + 3];
+          alphaCache.set(key, alpha);
         }
+      } catch (e) {
+        console.warn('⚠️ Alpha map extraction failed.', e);
+      }
     }
 
     try { return await ck.MakeImageFromCanvasImageSource(src); } catch { return null; }

@@ -8,8 +8,6 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string>(examples[0].id);
   const [editableCode, setEditableCode] = useState<Record<string, string>>({});
 
-  // Split state: currentCode (live typing) vs savedCode (applied to preview)
-  const [savedCode, setSavedCode] = useState<string>('');
   const [currentCode, setCurrentCode] = useState<string>('');
   const [currentTitle, setCurrentTitle] = useState<string>('');
 
@@ -21,14 +19,16 @@ const App: React.FC = () => {
     [selectedId]
   );
 
+  // ✅ Derive savedCode synchronously to prevent double-render flicker on example switch
+  const savedCode = editableCode[selectedId] ?? selectedExample?.source ?? '';
+
   // Sync state when switching examples
   useEffect(() => {
     if (selectedExample) {
       const code = editableCode[selectedId] ?? selectedExample.source;
-      setSavedCode(code);
       setCurrentCode(code);
       setCopied(false);
-      setCurrentTitle(selectedExample.title)
+      setCurrentTitle(selectedExample.title);
     }
   }, [selectedId, selectedExample, editableCode]);
 
@@ -40,7 +40,6 @@ const App: React.FC = () => {
 
   const handleSave = useCallback(() => {
     if (hasUnsaved && selectedExample) {
-      setSavedCode(currentCode);
       setEditableCode(prev => ({ ...prev, [selectedId]: currentCode }));
     }
   }, [currentCode, hasUnsaved, selectedId, selectedExample]);
@@ -48,7 +47,6 @@ const App: React.FC = () => {
   const handleReset = useCallback(() => {
     if (selectedExample) {
       const original = selectedExample.source;
-      setSavedCode(original);
       setCurrentCode(original);
       setEditableCode(prev => {
         const next = { ...prev };
@@ -83,7 +81,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [handleSave]);
 
-  console.log(examples)
   return (
     <div className="app-layout">
       <Sidebar examples={examples} selectedId={selectedId} onSelect={setSelectedId} />
@@ -96,9 +93,7 @@ const App: React.FC = () => {
               <div className="editor-header">
                 <div className="editor-status">
                   <span className={`status-dot ${hasUnsaved ? 'edited' : ''}`} />
-                  <span>
-                    {currentTitle}
-                  </span>
+                  <span>{currentTitle}</span>
                 </div>
                 <div className="editor-actions">
                   {hasUnsaved && (
