@@ -122,15 +122,15 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
     const x = Math.random() * (app.screen.width - 100) + 50;
     const y = Math.random() * (app.screen.height - 100) + 50;
     
-    const shapeType = Math.floor(Math.random() * 4);
+    // Randomly pick shape type: 0=line, 1=rect, 2=circle, 3=ellipse, 4=roundedRect, 5=arc, 6=bezier
+    const shapeType = Math.floor(Math.random() * 7);
     
     switch (shapeType) {
       case 0: // LINE
         g.lineStyle(4 + Math.random() * 6, color, alpha);
         g.moveTo(-40, 0);
         g.lineTo(40, 0);
-        g.x = x;
-        g.y = y;
+        g.x = x; g.y = y;
         g.rotation = Math.random() * Math.PI * 2;
         break;
         
@@ -144,8 +144,7 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
           g.lineStyle(2, 0xffffff, 0.8);
           g.drawRect(-rectW/2, -rectH/2, rectW, rectH);
         }
-        g.x = x;
-        g.y = y;
+        g.x = x; g.y = y;
         break;
         
       case 2: // CIRCLE
@@ -157,22 +156,48 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
           g.lineStyle(3, 0xffffff, 0.9);
           g.drawCircle(0, 0, radius);
         }
-        g.x = x;
-        g.y = y;
+        g.x = x; g.y = y;
         break;
         
-      case 3: // ELLIPSE
+      case 3: // ELLIPSE (Pixi: width/height = RADII)
         const rx = 25 + Math.random() * 50;
         const ry = 15 + Math.random() * 35;
         g.beginFill(color, alpha);
-        g.drawEllipse(0, 0, rx, ry);
+        g.drawEllipse(0, 0, rx, ry); // ✅ Pixi expects radii here
         g.endFill();
         if (Math.random() < 0.3) {
           g.lineStyle(2, 0xffffff, 0.8);
           g.drawEllipse(0, 0, rx, ry);
         }
-        g.x = x;
-        g.y = y;
+        g.x = x; g.y = y;
+        g.rotation = Math.random() * Math.PI * 2;
+        break;
+        
+      case 4: // ROUNDED RECT (single radius)
+        const rw = 40 + Math.random() * 60;
+        const rh = 30 + Math.random() * 50;
+        const rr = 5 + Math.random() * 15;
+        g.beginFill(color, alpha);
+        g.drawRoundedRect(-rw/2, -rh/2, rw, rh, rr);
+        g.endFill();
+        g.x = x; g.y = y;
+        break;
+        
+      case 5: // ARC (path command - not filled by default)
+        const arcR = 25 + Math.random() * 35;
+        const startA = Math.random() * Math.PI * 2;
+        const endA = startA + 0.5 + Math.random() * 2.5;
+        g.lineStyle(3 + Math.random() * 4, color, alpha);
+        g.moveTo(0, 0); // Start point
+        g.arc(0, 0, arcR, startA, endA, Math.random() > 0.5);
+        g.x = x; g.y = y;
+        break;
+        
+      case 6: // CUBIC BEZIER CURVE
+        g.lineStyle(3, color, alpha);
+        g.moveTo(-30, 0);
+        g.bezierCurveTo(-10, -20, 10, 20, 30, 0);
+        g.x = x; g.y = y;
         g.rotation = Math.random() * Math.PI * 2;
         break;
     }
