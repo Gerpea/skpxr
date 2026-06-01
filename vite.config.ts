@@ -25,16 +25,17 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
-      name: 'PixiSkiaWrapper',
+      name: 'skpxr',
       formats: ['es'],
       fileName: 'index'
     },
 
     rollupOptions: {
-      external: ['pixi.js-legacy'],
+      external: ['pixi.js-legacy', 'canvaskit-wasm'],
       output: {
         globals: {
-          'pixi.js-legacy': 'PIXI'
+          'pixi.js-legacy': 'PIXI',
+          'canvaskit-wasm': 'CanvasKit'
         },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith('.wasm')) {
@@ -58,6 +59,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      // Only alias for local dev/example usage. 
+      // In production builds via CDN, this is ignored because 'canvaskit-wasm' is external.
       'canvaskit-wasm': path.resolve(__dirname, 'vendor/canvaskit-wasm/index.js')
     }
   },

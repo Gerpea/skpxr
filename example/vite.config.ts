@@ -2,8 +2,6 @@ import { defineConfig } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import react from '@vitejs/plugin-react';
-import dts from 'vite-plugin-dts';
-import commonjs from "@rollup/plugin-commonjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,17 +12,10 @@ export default defineConfig({
   publicDir: 'public',
 
   plugins: [
-    react(),
-    dts({
-      include: ['src'],
-      exclude: ['node_modules', 'vendor', 'example', 'dist'],
-      staticImport: true,
-      insertTypesEntry: true
-    }),
-    commonjs({
-      include: /node_modules/,
-      exclude: [/vendor\/canvaskit-wasm/, /node_modules\/canvaskit-wasm/],
-    }),
+    react({
+      jsxRuntime: 'automatic', // ✅ Explicit, though default
+    })
+    // ❌ Removed: dts() and commonjs() - not needed for app builds
   ],
 
   resolve: {
@@ -48,6 +39,8 @@ export default defineConfig({
   },
 
   optimizeDeps: {
+    // ✅ Pre-bundle React runtime to avoid JSX resolution issues
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
     exclude: ['skpxr', 'canvaskit-wasm']
   },
 

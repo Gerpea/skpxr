@@ -105,7 +105,7 @@ const Preview: React.FC<PreviewProps> = ({
             width: 800,
             height: 600,
             backgroundColor: 0x1099bb,
-            wasmBaseUrl: '/canvaskit/',
+            wasmBaseUrl: 'https://cdn.jsdelivr.net/gh/Gerpea/skpxr/vendor/canvaskit-wasm/',
             dpr: window.devicePixelRatio || 1,
           };
           

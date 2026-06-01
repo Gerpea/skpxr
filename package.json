@@ -1,7 +1,9 @@
 {
   "name": "skpxr",
-  "version": "0.0.1",
-  "description": "TypeScript wrapper to render Pixi.js containers with Skia CanvasKit and export to PDF",
+  "version": "0.1.0-alpha.1",
+  "description": "High-performance Skia/CanvasKit renderer for PixiJS v7 with vector text, interaction, and PDF export",
+  "author": "Gerpea <german.tcyganov@gmail.com>",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -13,12 +15,14 @@
     }
   },
   "files": [
-    "dist",
-    "vendor/canvaskit-wasm"
+    "dist"
   ],
   "scripts": {
+    "nvm:use": "nvm use",
+    "nvm:install": "nvm install",
+    "nvm:check": "node -v && npm -v",
     "dev": "vite build --watch",
-    "build": "vite build && node scripts/postbuild.js",
+    "build": "vite build",
     "dev:example": "npm -C example run dev",
     "build:example": "npm -C example run build",
     "preview:example": "npm -C example run preview",
@@ -28,25 +32,35 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "release-it",
+    "release:alpha": "release-it --preRelease=alpha",
+    "release:beta": "release-it --preRelease=beta",
+    "release:rc": "release-it --preRelease=rc",
+    "release:dry": "release-it --dry-run",
+    "release:github": "release-it --github.release"
   },
-  "dependencies": {
+  "peerDependencies": {
     "pixi.js-legacy": "^7.2.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.2.2",
+    "@release-it/conventional-changelog": "^10.0.6",
     "@rollup/plugin-commonjs": "^29.0.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "@vitest/coverage-v8": "^1.6.0",
+    "canvaskit-wasm": "^0.39.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.0",
     "husky": "^9.1.5",
     "jsdom": "^24.1.0",
     "lint-staged": "^15.2.9",
+    "pixi.js-legacy": "^7.2.4",
     "prettier": "^3.3.3",
+    "release-it": "^19.2.4",
     "sass": "^1.77.8",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
@@ -58,5 +72,36 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "keywords": [
+    "pixi",
+    "pixijs",
+    "skia",
+    "canvaskit",
+    "wasm",
+    "renderer",
+    "pdf",
+    "vector-graphics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gerpea/skpxr"
+  },
+  "bugs": {
+    "url": "https://github.com/gerpea/skpxr/issues"
+  },
+  "homepage": "https://github.com/gerpea/skpxr#readme",
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release v${version}",
+      "tagName": "v${version}",
+      "requireCleanWorkingDir": false
+    },
+    "github": {
+      "release": true,
+      "preRelease": "alpha",
+      "autoGenerate": true
+    },
+    "npm": { "publish": false }
   }
 }
