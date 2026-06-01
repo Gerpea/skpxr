@@ -59,20 +59,17 @@ export const SHAPES_DEMO_SOURCE = `function setupScene(scene, app) {
 }`;
 
 export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
-  const { Graphics, Text, TextStyle, Container } = PIXI;
+  const { Graphics, Text, TextStyle, Container, Sprite } = PIXI;
 
-  // 1. Create a background shape
   const bg = new Graphics();
   bg.beginFill(0x2c3e50);
   bg.drawRect(0, 0, app.screen.width, app.screen.height);
   bg.endFill();
   scene.addChild(bg);
 
-  // 2. Create UI Layer (Always on top)
   const uiLayer = new Container();
   scene.addChild(uiLayer);
 
-  // Helper to create buttons
   const createButton = (label, x, y, color, onClick) => {
     const btn = new Container();
     btn.x = x;
@@ -119,36 +116,149 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
     return btn;
   };
 
-  // Add Buttons
-  createButton('Add Shape', 20, 20, 0xe74c3c, () => {
+  const addRandomShape = () => {
     const g = new Graphics();
-    g.beginFill(Math.random() * 0xFFFFFF);
-    g.drawRect(0, 0, 50, 50);
-    g.endFill();
-    g.x = Math.random() * (app.screen.width - 50);
-    g.y = Math.random() * (app.screen.height - 50);
-    // Insert before UI layer so it appears behind buttons
+    const color = Math.floor(Math.random() * 0xFFFFFF);
+    const alpha = 0.7 + Math.random() * 0.3;
+    const x = Math.random() * (app.screen.width - 100) + 50;
+    const y = Math.random() * (app.screen.height - 100) + 50;
+    
+    const shapeType = Math.floor(Math.random() * 4);
+    
+    switch (shapeType) {
+      case 0: // LINE
+        g.lineStyle(4 + Math.random() * 6, color, alpha);
+        g.moveTo(-40, 0);
+        g.lineTo(40, 0);
+        g.x = x;
+        g.y = y;
+        // Rotate randomly for variety
+        g.rotation = Math.random() * Math.PI * 2;
+        break;
+        
+      case 1: // RECT
+        const rectW = 30 + Math.random() * 70;
+        const rectH = 30 + Math.random() * 70;
+        g.beginFill(color, alpha);
+        g.drawRect(-rectW/2, -rectH/2, rectW, rectH);
+        g.endFill();
+        // 30% chance to add a stroke
+        if (Math.random() < 0.3) {
+          g.lineStyle(2, 0xffffff, 0.8);
+          g.drawRect(-rectW/2, -rectH/2, rectW, rectH);
+        }
+        g.x = x;
+        g.y = y;
+        break;
+        
+      case 2: // CIRCLE
+        const radius = 20 + Math.random() * 40;
+        g.beginFill(color, alpha);
+        g.drawCircle(0, 0, radius);
+        g.endFill();
+        // 30% chance to add a stroke
+        if (Math.random() < 0.3) {
+          g.lineStyle(3, 0xffffff, 0.9);
+          g.drawCircle(0, 0, radius);
+        }
+        g.x = x;
+        g.y = y;
+        break;
+        
+      case 3: // ELLIPSE
+        const rx = 25 + Math.random() * 50;
+        const ry = 15 + Math.random() * 35;
+        g.beginFill(color, alpha);
+        g.drawEllipse(0, 0, rx, ry);
+        g.endFill();
+        // 30% chance to add a stroke
+        if (Math.random() < 0.3) {
+          g.lineStyle(2, 0xffffff, 0.8);
+          g.drawEllipse(0, 0, rx, ry);
+        }
+        g.x = x;
+        g.y = y;
+        // Random rotation for ellipses
+        g.rotation = Math.random() * Math.PI * 2;
+        break;
+    }
+    
     scene.addChildAt(g, scene.getChildIndex(uiLayer));
+    return g;
+  };
+
+  createButton('Add Shape', 20, 20, 0xe74c3c, () => {
+    addRandomShape();
   });
 
   createButton('Add Sprite', 160, 20, 0x3498db, () => {
+    const emojis = ['🎨', '🎮', '🚀', '⭐', '🔮', '🎯', '💎', '🌟'];
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    
     const canvas = document.createElement('canvas');
-    canvas.width = 50; canvas.height = 50;
+    canvas.width = 64;
+    canvas.height = 64;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
-    ctx.fillRect(0,0,50,50);
+    
+    if (ctx) {
+      ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+      ctx.beginPath();
+      ctx.roundRect(0, 0, 64, 64, 12);
+      ctx.fill();
+      
+      ctx.font = '40px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(emoji, 32, 32);
+      
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    
     const tex = PIXI.Texture.from(canvas);
-    const s = new PIXI.Sprite(tex);
-    s.x = Math.random() * (app.screen.width - 50);
-    s.y = Math.random() * (app.screen.height - 50);
+    const s = new Sprite(tex);
+    s.anchor.set(0.5);
+    s.x = Math.random() * (app.screen.width - 50) + 25;
+    s.y = Math.random() * (app.screen.height - 50) + 25;
+    s.eventMode = 'static';
+    s.cursor = 'grab';
+    
+    // Add simple drag interaction
+    let dragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    
+    s.on('pointerdown', (e) => {
+      dragging = true;
+      dragOffset.x = e.global.x - s.x;
+      dragOffset.y = e.global.y - s.y;
+      s.alpha = 0.8;
+    });
+    
+    s.on('pointermove', (e) => {
+      if (dragging) {
+        s.x = e.global.x - dragOffset.x;
+        s.y = e.global.y - dragOffset.y;
+      }
+    });
+    
+    const endDrag = () => {
+      if (dragging) {
+        dragging = false;
+        s.alpha = 1;
+      }
+    };
+    
+    s.on('pointerup', endDrag);
+    s.on('pointerupoutside', endDrag);
+    
     scene.addChildAt(s, scene.getChildIndex(uiLayer));
   });
 
-  createButton('Export PDF', 300, 20, 0x27ae60, () => {
-    // Note: In a real app, you'd trigger the SkiaRenderer export here.
-    // For this demo, we just log it.
-    console.log('Export PDF triggered');
-    alert('PDF Export would trigger here via SkiaRenderer API');
+  createButton('Export PDF', 300, 20, 0x27ae60, async () => {
+    if(app.downloadPdf) {
+      await app.downloadPdf();
+    }  
   });
 }`;
 
