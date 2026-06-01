@@ -4,6 +4,23 @@ export class TH {
     private static readonly IDENTITY = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
     static pixiToSkiaMatrix(pixiTransform: PIXI.Transform): Float32Array {
+        // Force Pixi to recalculate the local matrix from live properties.
+        // This prevents reading "stale" matrix data if the object was just moved, 
+        // while correctly baking in skew and pivot which manual math misses.
+        try {
+            pixiTransform.updateLocalTransform();
+        } catch (e) {
+            // Ignore if it fails, fallback will handle it
+        }
+
+        const lt = pixiTransform.localTransform;
+        if (lt) {
+            // Skia expects row-major 3x3: [ScaleX, SkewX, TransX, SkewY, ScaleY, TransY, 0, 0, 1]
+            // Pixi's Matrix maps perfectly: a=ScaleX, c=SkewX, tx=TransX, b=SkewY, d=ScaleY, ty=TransY
+            return new Float32Array([lt.a, lt.c, lt.tx, lt.b, lt.d, lt.ty, 0, 0, 1]);
+        }
+
+        // Fallback: Manual math (lacks skew/pivot, but guarantees basic positioning if localTransform is missing)
         const { x, y } = pixiTransform.position;
         const { x: sx, y: sy } = pixiTransform.scale;
         const rotation = pixiTransform.rotation;
