@@ -7,11 +7,12 @@ import { examples, Example } from './ExampleRegistry';
 const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string>(examples[0].id);
   const [editableCode, setEditableCode] = useState<Record<string, string>>({});
-  
+
   // Split state: currentCode (live typing) vs savedCode (applied to preview)
   const [savedCode, setSavedCode] = useState<string>('');
   const [currentCode, setCurrentCode] = useState<string>('');
-  
+  const [currentTitle, setCurrentTitle] = useState<string>('');
+
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<number>();
 
@@ -27,6 +28,7 @@ const App: React.FC = () => {
       setSavedCode(code);
       setCurrentCode(code);
       setCopied(false);
+      setCurrentTitle(selectedExample.title)
     }
   }, [selectedId, selectedExample, editableCode]);
 
@@ -81,10 +83,11 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [handleSave]);
 
+  console.log(examples)
   return (
     <div className="app-layout">
       <Sidebar examples={examples} selectedId={selectedId} onSelect={setSelectedId} />
-      
+
       <main className="main-area">
         {selectedExample ? (
           <div className="content-split">
@@ -93,18 +96,20 @@ const App: React.FC = () => {
               <div className="editor-header">
                 <div className="editor-status">
                   <span className={`status-dot ${hasUnsaved ? 'edited' : ''}`} />
-                  <span>{hasUnsaved ? '✏️ Unsaved' : '✓ Saved'}</span>
-                  {hasUnsaved && (
-                    <span style={{ color: '#666', fontSize: 11, marginLeft: 6 }}>
-                      (Ctrl+S)
-                    </span>
-                  )}
+                  <span>
+                    {currentTitle}
+                  </span>
                 </div>
                 <div className="editor-actions">
                   {hasUnsaved && (
-                    <button className="action-btn save" onClick={handleSave} title="Save & Apply (Ctrl+S)">
-                      💾 Save
-                    </button>
+                    <>
+                      <span style={{ color: '#666', fontSize: 11, marginLeft: 6 }}>
+                        (Ctrl+S)
+                      </span>
+                      <button className="action-btn save" onClick={handleSave} title="Save & Apply (Ctrl+S)">
+                        💾 Save
+                      </button>
+                    </>
                   )}
                   <button className={`action-btn copy ${copied ? 'copied' : ''}`} onClick={handleCopy} title={copied ? 'Copied!' : 'Copy code'}>
                     {copied ? '✓' : '📋'}
@@ -121,16 +126,16 @@ const App: React.FC = () => {
 
             {/* Right: Preview Column - Pixi Top, Skia Bottom */}
             <div className="preview-column">
-              <Preview 
-                example={selectedExample} 
-                editableCode={savedCode} 
+              <Preview
+                example={selectedExample}
+                editableCode={savedCode}
                 label="Pixi"
                 renderer="pixi"
               />
               <div className="preview-divider" />
-              <Preview 
-                example={selectedExample} 
-                editableCode={savedCode} 
+              <Preview
+                example={selectedExample}
+                editableCode={savedCode}
                 label="Skia"
                 renderer="skia"
               />

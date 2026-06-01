@@ -26,7 +26,7 @@ const SANDBOX: Record<string, any> = {
 // ✅ Safe wrapper for Pixi Application that handles null renderer
 const createSafeAppProxy = (app: PixiApplication | null | undefined) => {
   if (!app) return undefined;
-  
+
   return new Proxy(app, {
     get(target, prop) {
       // Handle 'screen' getter safely
@@ -57,30 +57,29 @@ export interface DynamicRunnerProps {
   onError?: (error: Error) => void;
 }
 
-export const DynamicRunner: React.FC<DynamicRunnerProps> = ({ 
-  code, 
-  exampleId, 
+export const DynamicRunner: React.FC<DynamicRunnerProps> = ({
+  code,
+  exampleId,
   scene,
   app,
-  onError 
+  onError
 }) => {
   useEffect(() => {
     if (!scene) return;
-    
-    try {
-      const cleanedCode = code
-        .replace(/^\s*import\s+.*?;?\s*$/gm, '')
-        .replace(/^\s*export\s+.*?;?\s*$/gm, '')
-        .trim();
 
-      if (!cleanedCode) {
-        throw new Error('Code is empty after cleaning');
-      }
+    const cleanedCode = code
+      .replace(/^\s*import\s+.*?;?\s*$/gm, '')
+      .replace(/^\s*export\s+.*?;?\s*$/gm, '')
+      .trim();
 
-      // ✅ Create safe app proxy (or undefined for Skia)
-      const safeApp = app ? createSafeAppProxy(app) : undefined;
+    // if (!cleanedCode) {
+    //   throw new Error('Code is empty after cleaning');
+    // }
 
-      const factoryCode = `
+    // ✅ Create safe app proxy (or undefined for Skia)
+    const safeApp = app ? createSafeAppProxy(app) : undefined;
+
+    const factoryCode = `
         "use strict";
         return function(scene, app) {
           ${cleanedCode}
@@ -89,20 +88,15 @@ export const DynamicRunner: React.FC<DynamicRunnerProps> = ({
           }
         }
       `;
-      
-      // eslint-disable-next-line no-new-func
-      const factory = new Function(...Object.keys(SANDBOX), factoryCode);
-      const setupFn = factory(...Object.values(SANDBOX));
-      
-      if (typeof setupFn === 'function') {
-        setupFn(scene, safeApp);
-      }
-      
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error(`[${exampleId}] Scene setup error:`, error);
-      onError?.(error);
+
+    // eslint-disable-next-line no-new-func
+    const factory = new Function(...Object.keys(SANDBOX), factoryCode);
+    const setupFn = factory(...Object.values(SANDBOX));
+
+    if (typeof setupFn === 'function' && safeApp) {
+      setupFn(scene, safeApp);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, exampleId, scene, app, onError]);
 

@@ -285,13 +285,14 @@ body {
 
 /* ───────── ERROR DISPLAY ───────── */
 .error-display {
+  position: absolute;
   padding: 20px;
   color: var(--error);
   font-family: var(--font-mono);
   font-size: 12px;
   max-width: 100%;
   overflow: auto;
-  background: rgba(241, 76, 76, 0.1);
+  background: var(--bg-dark);
   border-radius: 4px;
   margin: 10px;
 }
