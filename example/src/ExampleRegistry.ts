@@ -94,7 +94,6 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
 
     btn.addChild(bgBtn, border, txt);
     
-    // Interaction
     btn.on('pointerdown', () => {
       bgBtn.clear();
       bgBtn.beginFill(0x555555);
@@ -132,7 +131,6 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
         g.lineTo(40, 0);
         g.x = x;
         g.y = y;
-        // Rotate randomly for variety
         g.rotation = Math.random() * Math.PI * 2;
         break;
         
@@ -142,7 +140,6 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
         g.beginFill(color, alpha);
         g.drawRect(-rectW/2, -rectH/2, rectW, rectH);
         g.endFill();
-        // 30% chance to add a stroke
         if (Math.random() < 0.3) {
           g.lineStyle(2, 0xffffff, 0.8);
           g.drawRect(-rectW/2, -rectH/2, rectW, rectH);
@@ -156,7 +153,6 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
         g.beginFill(color, alpha);
         g.drawCircle(0, 0, radius);
         g.endFill();
-        // 30% chance to add a stroke
         if (Math.random() < 0.3) {
           g.lineStyle(3, 0xffffff, 0.9);
           g.drawCircle(0, 0, radius);
@@ -171,14 +167,12 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
         g.beginFill(color, alpha);
         g.drawEllipse(0, 0, rx, ry);
         g.endFill();
-        // 30% chance to add a stroke
         if (Math.random() < 0.3) {
           g.lineStyle(2, 0xffffff, 0.8);
           g.drawEllipse(0, 0, rx, ry);
         }
         g.x = x;
         g.y = y;
-        // Random rotation for ellipses
         g.rotation = Math.random() * Math.PI * 2;
         break;
     }
@@ -224,7 +218,6 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
     s.eventMode = 'static';
     s.cursor = 'grab';
     
-    // Add simple drag interaction
     let dragging = false;
     let dragOffset = { x: 0, y: 0 };
     
@@ -255,11 +248,11 @@ export const INTERACTIVE_UI_SOURCE = `function setupScene(scene, app) {
     scene.addChildAt(s, scene.getChildIndex(uiLayer));
   });
 
-  createButton('Export PDF', 300, 20, 0x27ae60, async () => {
-    if(app.downloadPdf) {
+  if (app.downloadPdf) {
+    createButton('Export PDF', 300, 20, 0x27ae60, async () => {
       await app.downloadPdf();
-    }  
-  });
+    });
+  }
 }`;
 
 export const examples: Example[] = [
